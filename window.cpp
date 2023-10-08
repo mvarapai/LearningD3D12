@@ -1,12 +1,14 @@
 #include "window.h"
 
+D3DWindow* D3DWindow::mWindow = nullptr;
+
 // Forward declarations
 
 // Function that processes window messages
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-// Create window
-ID3DWindow::ID3DWindow(HINSTANCE hInstance, int show, bool* result) {
+// Constructor
+D3DWindow::D3DWindow(HINSTANCE hInstance, int show, bool* result) {
 	*result = true;
 	this->mhInstance = hInstance;
 
@@ -58,7 +60,8 @@ ID3DWindow::ID3DWindow(HINSTANCE hInstance, int show, bool* result) {
 	UpdateWindow(mhWnd);
 }
 
-HWND ID3DWindow::GetWindowHandle() const
+// Getter of a window handle
+HWND D3DWindow::GetWindowHandle() const
 {
 	return mhWnd;
 }
@@ -83,4 +86,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	}
 	// Everything else is processed as by default
 	return DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+// Method to secure that there is only one window instance
+D3DWindow* D3DWindow::GetWindow(HINSTANCE hInst, int show, bool* result)
+{
+	// If the window was not created before
+	if (mWindow == nullptr) {
+		// Create new window
+		mWindow = new D3DWindow(hInst, show, result);
+	}
+	return mWindow;
 }

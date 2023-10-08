@@ -14,7 +14,7 @@
 //		Global variables
 // ===============================
 
-ID3DWindow* g_wnd = nullptr;
+D3DWindow* g_wnd = nullptr;
 Timer* g_timer = nullptr;
 
 bool g_appPaused = false;
@@ -44,7 +44,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance,
 
 	// Create window
 	bool result = true;
-	g_wnd = new ID3DWindow(hInstance, nCmdShow, &result);
+	g_wnd = D3DWindow::GetWindow(hInstance, nCmdShow, &result);
 
 	// Create timer
 	g_timer = new Timer();
