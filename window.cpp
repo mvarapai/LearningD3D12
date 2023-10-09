@@ -1,17 +1,15 @@
 #include "window.h"
+#include "d3dinit.h"
 
 D3DWindow* D3DWindow::mWindow = nullptr;
-
-// Forward declarations
 
 // Function that processes window messages
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Constructor
-D3DWindow::D3DWindow(HINSTANCE hInstance, int show, bool* result) {
-	*result = true;
+D3DWindow::D3DWindow(HINSTANCE hInstance, int show) {
+	mWindow = this;
 	this->mhInstance = hInstance;
-
 	// Fill out structure with window class data
 	WNDCLASS wc = {};
 	wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -29,7 +27,6 @@ D3DWindow::D3DWindow(HINSTANCE hInstance, int show, bool* result) {
 	if (!RegisterClass(&wc))
 	{
 		MessageBox(0, L"RegisterClass FAILED", 0, 0);
-		*result = false;
 		return;
 	}
 
@@ -40,8 +37,8 @@ D3DWindow::D3DWindow(HINSTANCE hInstance, int show, bool* result) {
 		WS_OVERLAPPEDWINDOW,
 		m_x,
 		m_y,
-		mWidth,
-		mHeight,
+		800,
+		600,
 		0,
 		0,
 		hInstance,
@@ -51,7 +48,6 @@ D3DWindow::D3DWindow(HINSTANCE hInstance, int show, bool* result) {
 	if (mhWnd == 0)
 	{
 		MessageBox(0, L"Create Window FAILED", 0, 0);
-		*result = false;
 		return;
 	}
 
@@ -69,32 +65,20 @@ HWND D3DWindow::GetWindowHandle() const
 // Process window messages
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	// Handle some messages that are not processed by default WndProc:
-	switch (msg)
-	{
-		// If ESC key is pressed:
-	case WM_KEYDOWN:
-		// (Potential for some "ProcessKeyboardInput" function)
-		if (wParam == VK_ESCAPE)
-			DestroyWindow(hWnd);
-		return 0;
-
-		// If we get a destroy message terminate the loop in main.cpp
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		return 0;
-	}
-	// Everything else is processed as by default
-	return DefWindowProc(hWnd, msg, wParam, lParam);
+	
+	return D3DApp::GetApp()->MsgProc(hWnd, msg, wParam, lParam);
 }
 
 // Method to secure that there is only one window instance
-D3DWindow* D3DWindow::GetWindow(HINSTANCE hInst, int show, bool* result)
+D3DWindow* D3DWindow::CreateD3DWindow(HINSTANCE hInst, int show)
 {
 	// If the window was not created before
-	if (mWindow == nullptr) {
-		// Create new window
-		mWindow = new D3DWindow(hInst, show, result);
-	}
+	// Create new window
+	
+	return new D3DWindow(hInst, show);
+}
+
+D3DWindow* D3DWindow::GetWindow()
+{
 	return mWindow;
 }

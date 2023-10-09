@@ -5,10 +5,11 @@ Timer::Timer()
 	: mSecondsPerCount(0.0), mDeltaTime(-1.0), mBaseTime(0),
 mPausedTime(0), mPrevTime(0), mCurrTime(0), mStopped(false), mStopTime(0)
 {
-	__int64 countsPerSec;
+	__int64 countsPerSec = 0;
 	QueryPerformanceFrequency((LARGE_INTEGER*)&countsPerSec);
 	mSecondsPerCount = 1.0 / (double)countsPerSec;
 }
+
 
 float Timer::TotalTime() const
 {
@@ -33,7 +34,7 @@ float Timer::DeltaTime() const
 // Called once before the loop
 void Timer::Reset()
 {
-	__int64 currTime;
+	__int64 currTime = 0;
 	QueryPerformanceCounter((LARGE_INTEGER*)&currTime);
 
 	mBaseTime = currTime;
@@ -45,7 +46,7 @@ void Timer::Reset()
 // Start the timer
 void Timer::Start()
 {
-	__int64 startTime;
+	__int64 startTime = 0;
 	QueryPerformanceCounter((LARGE_INTEGER*)&startTime);
 
 	if (mStopped)

@@ -128,12 +128,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3dinit.cpp" />
+    <ClCompile Include="d3dUtil.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="timer.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3dinit.h" />
+    <ClInclude Include="d3dUtil.h" />
     <ClInclude Include="timer.h" />
     <ClInclude Include="window.h" />
   </ItemGroup>
