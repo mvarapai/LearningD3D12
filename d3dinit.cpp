@@ -10,6 +10,8 @@
 #include <dxgi1_4.h>
 #include <wrl.h>
 #include <windowsx.h>
+#include <corecrt_wstring.h>
+#include <vector>
 
 using Microsoft::WRL::ComPtr;
 
@@ -43,7 +45,8 @@ void D3DApp::InitD3D(D3DWindow* window)
 	CreateDevice();
 	CreateFenceAndQueryDescriptorSizes();
 	msaaQualityLevels = GetMSAAQualityLevels();
-	OutputDebugString(L"***Quality levels: " + msaaQualityLevels);
+	std::wstring text = L"***Quality levels: " + std::to_wstring(msaaQualityLevels) + L"\n";
+	OutputDebugString(text.c_str());
 
 	CreateCommandObjects();
 	CreateSwapChain();
@@ -51,7 +54,7 @@ void D3DApp::InitD3D(D3DWindow* window)
 	
 	// Do the initial resize
 	OnResize();
-
+	LogAdapters();
 }
 
 // Creates:
@@ -304,6 +307,8 @@ void D3DApp::FlushCommandQueue()
 		// Fire event when GPU hits current fence
 		ThrowIfFailed(mFence->SetEventOnCompletion(mCurrentFence, eventHandle));
 
+		if (eventHandle == nullptr) return;
+
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
 	}
@@ -359,6 +364,114 @@ void D3DApp::OnResize()
 	mScissorRect = { 0, 0, (long)mClientWidth,
 		(long)mClientHeight };
 
+}
+
+// Calculate FPS and update window text
+void D3DApp::CalculateFrameStats()
+{
+	// Make static variables so that they don't change
+	// between function calls
+	static int frameCnt = 0;
+	static float timeElapsed = 0.0f;
+
+	frameCnt++;
+
+	// Compute averages over 1 second period
+	if ((mTimer->TotalTime() - timeElapsed) >= 1.0f)
+	{
+		float fps = (float)frameCnt;
+		float mspf = 1000.0f / fps;
+
+		std::wstring fpsStr = AnsiToWString(std::to_string(fps));
+		std::wstring mspfStr = AnsiToWString(std::to_string(mspf));
+
+		std::wstring windowText = mMainWindowCaption +
+			L"		fps: " + fpsStr +
+			L"		mspf: " + mspfStr;
+
+		SetWindowText(D3DWindow::GetWindow()->GetWindowHandle(), windowText.c_str());
+
+		frameCnt = 0;
+		timeElapsed += 1.0f;
+
+	}
+}
+
+// Print debug string containing the list of adapters
+void D3DApp::LogAdapters()
+{
+	UINT i = 0;
+	IDXGIAdapter* adapter = nullptr;
+	std::vector<IDXGIAdapter*> adapterList;
+
+	while (mdxgiFactory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND)
+	{
+		DXGI_ADAPTER_DESC desc = { };
+		adapter->GetDesc(&desc);
+
+		std::wstring text = L"***Adapter: ";
+		text += desc.Description;
+		text += L"\n";
+
+		OutputDebugString(text.c_str());
+
+		adapterList.push_back(adapter);
+
+		i++;
+	}
+
+	for (size_t i = 0; i < adapterList.size(); i++)
+	{
+		LogAdapterOutputs(adapterList[i]);
+		adapterList[i]->Release();
+	}
+}
+
+void D3DApp::LogAdapterOutputs(IDXGIAdapter* adapter)
+{
+	UINT i = 0;
+	IDXGIOutput* output = nullptr;
+	while (adapter->EnumOutputs(i, &output) != DXGI_ERROR_NOT_FOUND)
+	{
+		DXGI_OUTPUT_DESC desc = { };
+		output->GetDesc(&desc);
+
+		std::wstring text = L"***Output: ";
+		text += desc.DeviceName;
+		text += L"\n";
+		OutputDebugString(text.c_str());
+
+		LogOutputDisplayModes(output, mBackBufferFormat);
+
+		output->Release();
+
+		i++;
+	}
+}
+
+void D3DApp::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format)
+{
+	UINT count = 0;
+	UINT flags = 0;
+
+	// Call with nullptr to get list count
+	output->GetDisplayModeList(format, flags, &count, nullptr);
+
+	std::vector<DXGI_MODE_DESC> modeList(count);
+	output->GetDisplayModeList(format, flags, &count, &modeList[0]);
+
+	for (DXGI_MODE_DESC& x : modeList)
+	{
+		UINT n = x.RefreshRate.Numerator;
+		UINT d = x.RefreshRate.Denominator;
+		std::wstring text =
+			L"Width = " + std::to_wstring(x.Width) + L" " +
+			L"Height = " + std::to_wstring(x.Height) + L" " +
+			L"Refresh = " + std::to_wstring(n) + L"/" +
+			std::to_wstring(d) + L"\n";
+
+		OutputDebugString(text.c_str());
+	}
 }
 
 LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -459,10 +572,30 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		((MINMAXINFO*)lParam)->ptMinTrackSize.x = 200;
 		((MINMAXINFO*)lParam)->ptMinTrackSize.y = 200;
 		return 0;
+
+	case WM_LBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+		OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		return 0;
+
+	case WM_LBUTTONUP:
+	case WM_MBUTTONUP:
+	case WM_RBUTTONUP:
+		OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		return 0;
+
+	case WM_MOUSEMOVE:
+		OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		return 0;
+
+	case WM_KEYUP:
+		if (wParam == VK_ESCAPE)
+		{
+			PostQuitMessage(0);
+			return 0;
+		}
 	}
-
-	// TODO: processing mouse and key pressings
-
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 

@@ -14,19 +14,11 @@
 #include "d3dinit.h"
 #include "d3dUtil.h"
 
-// ===============================
-//		Global variables
-// ===============================
-
 D3DWindow* g_wnd = nullptr;
 D3DApp* g_app = nullptr;
 Timer* g_timer = nullptr;
 
 bool g_appPaused = false;
-
-// ===============================
-//		Function templates
-// ===============================
 
 // Entry point to the app
 int WINAPI WinMain(_In_ HINSTANCE hInstance,// Handle to app in Windows
@@ -34,12 +26,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance,// Handle to app in Windows
 	_In_ PSTR pCmdLine,						// Command line (PSTR = char*)
 	_In_ int nCmdShow);						// Show Command
 
-// Program cycle
-int run();
-
-// ===============================
-//		Function implementations
-// ===============================
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -54,12 +40,12 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance,
 	g_app = new D3DApp(g_timer);
 	g_app->Initialize(hInstance, nCmdShow);
 
-	run();
+	g_app->Run();
 	return 0;
 }
 
 // Main program cycle
-int run()
+int D3DApp::Run()
 {
 	// Process messages
 	MSG msg = { 0 };
@@ -77,12 +63,13 @@ int run()
 		}
 		// Otherwise, process application and DirectX messages
 		else {
-			g_timer->Tick();
+			mTimer->Tick();
 			// TODO: display FPS at title
 			if (!g_appPaused)
 			{
-				g_app->Update();
-				g_app->Draw();
+				CalculateFrameStats();
+				Update();
+				Draw();
 			}
 			else
 			{
@@ -105,6 +92,7 @@ void D3DApp::Draw()
 		D3D12_RESOURCE_STATE_PRESENT,
 		D3D12_RESOURCE_STATE_RENDER_TARGET);
 
+	// To know what to render
 	mCommandList->RSSetViewports(1, &mViewport);
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
 
@@ -133,8 +121,9 @@ void D3DApp::Draw()
 	ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
 
-	// Swap buffers
 	ThrowIfFailed(mSwapChain->Present(0, 0));
+
+	// Swap buffers
 	mCurrBackBuffer = (mCurrBackBuffer + 1) % swapChainBufferCount;
 
 	// Wait per frame (to be redone soon)

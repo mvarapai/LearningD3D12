@@ -5,6 +5,7 @@
 
 #include "timer.h"
 #include "window.h"
+#include <string>
 
 // Function to create D3D objects
 
@@ -106,8 +107,8 @@ private:
 	bool msaaEnabled = false;
 
 	// Window state members
+	std::wstring mMainWindowCaption = L"Learning DirectX12";
 
-	D3DWindow* mWindow = nullptr;	// D3DWindow instance
 	bool mAppPaused = false;		// If app is paused
 	bool mMaximized = false;
 	bool mMinimized = false;
@@ -122,7 +123,19 @@ public:
 	// Defined in main
 	void Draw();					// Function to execute draw calls
 	void Update();					// Function for game logic
+	int Run();						// Main program cycle
 private:
 	void FlushCommandQueue();		// Used to wait till GPU finishes execution
 	void OnResize();				// Called when user finishes resizing
+	void CalculateFrameStats();		// Update window title with FPS
+
+	// Debug functions
+	void LogAdapters();
+	void LogAdapterOutputs(IDXGIAdapter* adapter);
+	void LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format);
+
+	// Mouse events
+	void OnMouseDown(WPARAM btnState, int x, int y) { }
+	void OnMouseUp(WPARAM btnState, int x, int y) { }
+	void OnMouseMove(WPARAM btnState, int x, int y) { }
 };
