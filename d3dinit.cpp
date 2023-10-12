@@ -6,30 +6,34 @@
 #include "d3dinit.h"
 #include "d3dUtil.h"
 
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <wrl.h>
 #include <windowsx.h>
-#include <corecrt_wstring.h>
 #include <vector>
 
 using Microsoft::WRL::ComPtr;
 
+// Initilalize static variable with nullptr
 D3DApp* D3DApp::mApp = nullptr;
 
+// Constructor: sets static instance of the class and the timer
+D3DApp::D3DApp(Timer* timer)
+{
+	mApp = this;
+	mTimer = timer;
+}
+
 // Get the instance of the D3DApp, or create one
-D3DApp* D3DApp::GetApp()
-{
-	return mApp;
-}
+D3DApp* D3DApp::GetApp() { return mApp; }
 
-void D3DApp::Initialize(HINSTANCE hInst, int nCmdShow)
+// Create window and initialize DirectX
+void D3DApp::Initialize(HINSTANCE hInst, int nCmdShow, Timer* timer)
 {
+	new D3DApp(timer);
 	D3DWindow::CreateD3DWindow(hInst, nCmdShow);
-	InitD3D(D3DWindow::GetWindow());
+	mApp->InitD3D();
 }
 
-void D3DApp::InitD3D(D3DWindow* window)
+// Initialize DirectX
+void D3DApp::InitD3D()
 {
 	// Enable the debug layer
 
@@ -57,9 +61,7 @@ void D3DApp::InitD3D(D3DWindow* window)
 	LogAdapters();
 }
 
-// Creates:
-// DXGI factory
-// D3D device, fallback to WARP if necessary
+// Create D3D device and DXGI factory
 inline void D3DApp::CreateDevice()
 {
 	// Create dxgi factory
@@ -103,6 +105,7 @@ inline void D3DApp::CreateFenceAndQueryDescriptorSizes()
 
 }
 
+// Create command queue, allocator, list
 inline void D3DApp::CreateCommandObjects()
 {
 	// Create command queue
@@ -133,9 +136,7 @@ inline void D3DApp::CreateCommandObjects()
 	mCommandList->Close();
 }
 
-// Create/recreate swap chain
-// Screen size taken from window
-// Sets the viewport and scissor rectangle
+// Create/recreate swap chain, potentially used to enable MSAA
 inline void D3DApp::CreateSwapChain()
 {
 	// Release previous swap chain we will be recreating
@@ -198,9 +199,9 @@ inline void D3DApp::CreateRenderTargetView()
 	{
 		// Get pointer to the buffer resource
 		ThrowIfFailed(mSwapChain->GetBuffer(
-			i, IID_PPV_ARGS(&mSwapChainBuffer[i])));
+			i, IID_PPV_ARGS(mSwapChainBuffer[i].GetAddressOf())));
 
-		// Create a descriptor (view) to it
+		// Create a descriptor to it
 		md3dDevice->CreateRenderTargetView(
 			mSwapChainBuffer[i].Get(), nullptr, rtvHeapHandle);
 
@@ -210,6 +211,7 @@ inline void D3DApp::CreateRenderTargetView()
 
 }
 
+// Create a DS object, commit it to the GPU and create a descriptor
 inline void D3DApp::CreateDepthStencilBufferAndView()
 {
 	D3D12_RESOURCE_DESC depthStencilDesc = { };
@@ -234,6 +236,7 @@ inline void D3DApp::CreateDepthStencilBufferAndView()
 	const D3D12_HEAP_PROPERTIES hp = DefaultHeap();
 
 	// Create resource and commit it to GPU
+
 	ThrowIfFailed(md3dDevice->CreateCommittedResource(
 		&hp,
 		D3D12_HEAP_FLAG_NONE,
@@ -243,6 +246,7 @@ inline void D3DApp::CreateDepthStencilBufferAndView()
 		IID_PPV_ARGS(mDepthStencilBuffer.GetAddressOf())));
 
 	// Create a view and place it in descriptor heap
+
 	md3dDevice->CreateDepthStencilView(
 		mDepthStencilBuffer.Get(),
 		nullptr,
@@ -251,6 +255,7 @@ inline void D3DApp::CreateDepthStencilBufferAndView()
 	ResourceBarrier* barrier = new ResourceBarrier(mCommandList.Get());
 
 	// Transition the resource to write depth info
+
 	barrier->Transition(mDepthStencilBuffer.Get(),
 		D3D12_RESOURCE_STATE_COMMON,
 		D3D12_RESOURCE_STATE_DEPTH_WRITE);
@@ -273,16 +278,21 @@ int D3DApp::GetMSAAQualityLevels()
 	return msQualityLevels.NumQualityLevels;
 }
 
+// Get CPU handle for DS descriptor
 D3D12_CPU_DESCRIPTOR_HANDLE D3DApp::DepthStencilView() const
 {
 	return mDsvHeap->GetCPUDescriptorHandleForHeapStart();
 }
 
+// Get current back buffer as a GPU resource
 ID3D12Resource* D3DApp::GetCurrentBackBuffer()
 {
 	return mSwapChainBuffer[mCurrBackBuffer].Get();
 }
 
+bool D3DApp::IsPaused() { return mAppPaused; }
+
+// Get CPU handle for current render target view
 D3D12_CPU_DESCRIPTOR_HANDLE D3DApp::CurrentBackBufferView() const
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = mRtvHeap->GetCPUDescriptorHandleForHeapStart();
@@ -314,6 +324,7 @@ void D3DApp::FlushCommandQueue()
 	}
 }
 
+// Called to change back and DS buffer sizes
 void D3DApp::OnResize()
 {
 	// Make sure all GPU commands are executed to avoid resource hazard
@@ -427,6 +438,7 @@ void D3DApp::LogAdapters()
 	}
 }
 
+// For every adapter log a string of available outputs
 void D3DApp::LogAdapterOutputs(IDXGIAdapter* adapter)
 {
 	UINT i = 0;
@@ -449,6 +461,7 @@ void D3DApp::LogAdapterOutputs(IDXGIAdapter* adapter)
 	}
 }
 
+// For every output log a string of available display modes
 void D3DApp::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format)
 {
 	UINT count = 0;
@@ -474,6 +487,7 @@ void D3DApp::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format)
 	}
 }
 
+// Passed from default WndProc function
 LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
@@ -557,6 +571,7 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		mAppPaused = false;
 		mResizing = false;
 		mTimer->Start();
+		OnResize();
 		return 0;
 
 	case WM_DESTROY:
@@ -597,10 +612,4 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	return DefWindowProc(hwnd, msg, wParam, lParam);
-}
-
-D3DApp::D3DApp(Timer* timer)
-{
-	mApp = this;
-	mApp->mTimer = timer;
 }

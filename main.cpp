@@ -14,11 +14,7 @@
 #include "d3dinit.h"
 #include "d3dUtil.h"
 
-D3DWindow* g_wnd = nullptr;
-D3DApp* g_app = nullptr;
 Timer* g_timer = nullptr;
-
-bool g_appPaused = false;
 
 // Entry point to the app
 int WINAPI WinMain(_In_ HINSTANCE hInstance,// Handle to app in Windows
@@ -37,10 +33,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance,
 	g_timer->Reset();
 	g_timer->Start();
 
-	g_app = new D3DApp(g_timer);
-	g_app->Initialize(hInstance, nCmdShow);
+	D3DApp::Initialize(hInstance, nCmdShow, g_timer);
 
-	g_app->Run();
+	D3DApp::GetApp()->Run();
 	return 0;
 }
 
@@ -65,7 +60,7 @@ int D3DApp::Run()
 		else {
 			mTimer->Tick();
 			// TODO: display FPS at title
-			if (!g_appPaused)
+			if (!mAppPaused)
 			{
 				CalculateFrameStats();
 				Update();
