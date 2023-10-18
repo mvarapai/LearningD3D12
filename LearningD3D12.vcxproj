@@ -137,6 +137,7 @@
     <ClInclude Include="d3dinit.h" />
     <ClInclude Include="d3dUtil.h" />
     <ClInclude Include="timer.h" />
+    <ClInclude Include="UploadBuffer.h" />
     <ClInclude Include="window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -51,3 +51,16 @@ private:
 };
 
 const D3D12_HEAP_PROPERTIES DefaultHeap();
+
+inline UINT CalcConstantBufferByteSize(UINT byteSize)
+{
+    // Mask off lower 2 bytes that store all bits < 256
+    // Example: Suppose byteSize = 300.
+    // (300 + 255) & ~255
+    // 555 & ~255
+    // 0x022B & ~0x00FF
+    // 0x022B & 0xFF00
+    // 0x0200
+    // 512
+    return (byteSize + 255) & ~255;
+}

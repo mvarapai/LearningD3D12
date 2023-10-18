@@ -10,7 +10,6 @@ mPausedTime(0), mPrevTime(0), mCurrTime(0), mStopped(false), mStopTime(0)
 	mSecondsPerCount = 1.0 / (double)countsPerSec;
 }
 
-
 float Timer::TotalTime() const
 {
 	if (mStopped)

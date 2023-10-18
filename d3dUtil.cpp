@@ -10,9 +10,7 @@ DxException::DxException(HRESULT hr, const std::wstring& functionName, const std
     ErrorCode(hr),
     FunctionName(functionName),
     Filename(filename),
-    LineNumber(lineNumber)
-{
-}
+    LineNumber(lineNumber) { }
 
 std::wstring DxException::ToString()const
 {

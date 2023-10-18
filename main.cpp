@@ -20,13 +20,7 @@ Timer* g_timer = nullptr;
 int WINAPI WinMain(_In_ HINSTANCE hInstance,// Handle to app in Windows
 	_In_opt_ HINSTANCE hPrevInstance,		// Not used
 	_In_ PSTR pCmdLine,						// Command line (PSTR = char*)
-	_In_ int nCmdShow);						// Show Command
-
-
-int WINAPI WinMain(_In_ HINSTANCE hInstance,
-	_In_opt_ HINSTANCE hPrevInstance,
-	_In_ PSTR pCmdLine,
-	_In_ int nCmdShow)
+	_In_ int nCmdShow)						// Show Command
 {
 	// Create timer
 	g_timer = new Timer();
