@@ -2,10 +2,29 @@
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <wrl.h>
+#include <string>
+#include <DirectXMath.h>
+#include <DirectXPackedVector.h>
+#include <memory>
 
 #include "timer.h"
 #include "window.h"
-#include <string>
+#include "MathHelper.h"
+#include "d3dUtil.h"
+#include "UploadBuffer.h"
+
+// Structure describing vertex buffer element format
+struct Vertex
+{
+	DirectX::XMFLOAT3 Pos;	// Position in non-homogeneous coordinates
+	DirectX::XMFLOAT4 Color; // RGBA color
+};
+
+// Structure of the constant buffer
+struct ObjectConstants
+{
+	DirectX::XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
+};
 
 // Class that initializes and operates DirectX 12
 class D3DApp
@@ -24,6 +43,8 @@ private:
 private:
 	// Timer instance, passed in Main
 	Timer* mTimer = nullptr;
+
+	Microsoft::WRL::ComPtr<ID3D12Debug>					mDebugController = nullptr;
 
 	// Objects for creating other objects from D3D12 and DXGI
 	Microsoft::WRL::ComPtr<IDXGIFactory4>				mdxgiFactory = nullptr;
@@ -53,6 +74,33 @@ private:
 	int	mCurrBackBuffer = 0;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mDepthStencilBuffer = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mSwapChainBuffer[swapChainBufferCount];
+
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mCbvHeap = nullptr;
+
+	// Contains ID3D12Resource instances
+	std::unique_ptr<UploadBuffer<ObjectConstants>> mObjectCB = nullptr;
+	std::unique_ptr<MeshGeometry> mBoxGeo = nullptr;
+
+	Microsoft::WRL::ComPtr<ID3DBlob> mvsByteCode = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> mpsByteCode = nullptr;
+
+	std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
+
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO = nullptr;
+
+	// Matrices that define scene look
+
+	DirectX::XMFLOAT4X4 mWorld = MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 mView = MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 mProj = MathHelper::Identity4x4();
+
+	// Parameters of matrices
+	float mTheta = 1.5f * DirectX::XM_PI;
+	float mPhi = DirectX::XM_PIDIV4;
+	float mRadius = 5.0f;
+
+	POINT mLastMousePos = { };
 
 	// Structures containing window sizes
 
@@ -104,6 +152,13 @@ private:
 	inline void CreateSwapChain();						// Create IDXGISwapChain, along with two buffers
 	inline void CreateDescriptorHeaps();				// Create arrays of descriptors
 
+	void BuildDescriptorHeaps();
+	void BuildConstantBuffers();
+	void BuildRootSignature();
+	void BuildShadersAndInputLayout();
+	void BuildBoxGeometry();
+	void BuildPSO();
+
 	// Used in OnResize():
 	inline void CreateRenderTargetView();				// Create descriptors for swap chain buffers
 	inline void CreateDepthStencilBufferAndView();		// Create depth/stencil buffer and descriptor
@@ -111,6 +166,7 @@ private:
 	int			GetMSAAQualityLevels();					// Get max quality levels for 4X MSAA
 private:
 	// Getters
+	float AspectRatio();
 	
 	// Get current descriptor handles
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
@@ -139,7 +195,7 @@ private:
 	void LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format);
 
 	// Mouse events
-	void OnMouseDown(WPARAM btnState, int x, int y) { }
-	void OnMouseUp(WPARAM btnState, int x, int y) { }
-	void OnMouseMove(WPARAM btnState, int x, int y) { }
+	void OnMouseDown(WPARAM btnState, int x, int y);
+	void OnMouseUp(WPARAM btnState, int x, int y);
+	void OnMouseMove(WPARAM btnState, int x, int y);
 };

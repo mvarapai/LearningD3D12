@@ -20,7 +20,7 @@ public:
 			mElementByteSize = CalcConstantBufferByteSize(sizeof(T));
 
 		// Basic upload heap
-		const D3D12_HEAP_PROPERTIES hp = { };
+		D3D12_HEAP_PROPERTIES hp = { };
 		hp.Type = D3D12_HEAP_TYPE_UPLOAD;
 		hp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 		hp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -28,28 +28,15 @@ public:
 		hp.VisibleNodeMask = 1;
 		
 		// Upload buffer description
-		D3D12_RESOURCE_DESC bufferDesc = { };
-		bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		bufferDesc.Alignment = 0;
-		bufferDesc.Height = 1;
-		bufferDesc.DepthOrArraySize = 1;
-		bufferDesc.MipLevels = 1;
-		bufferDesc.Format = mDepthStencilFormat;
-		bufferDesc.SampleDesc.Count = 1;
-		bufferDesc.SampleDesc.Quality = 0;
-		bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-		bufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-		// The buffer byte size
-		bufferDesc.Width = 
-			static_cast<UINT64>(mElementByteSize * elementCount);
+		D3D12_RESOURCE_DESC bufferDesc = BufferDesc(
+				static_cast<UINT64>(mElementByteSize * elementCount));
 
 		// Create upload buffer and commit it to the GPU heap
 		ThrowIfFailed(device->CreateCommittedResource(
 			&hp,								// Upload heap properties
 			D3D12_HEAP_FLAG_NONE,				
 			&bufferDesc,						// Resource description
-			D3D12_RESOURCE_STATE_GENERIC_READ,	// Initial state
+			D3D12_RESOURCE_STATE_COMMON,	// Initial state
 			nullptr,
 			IID_PPV_ARGS(mUploadBuffer.GetAddressOf())));
 
