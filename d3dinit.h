@@ -39,7 +39,8 @@ private:
 	// Used to make this class one-instance
 	static D3DApp* mApp;
 	D3DApp(Timer* timer);
-
+	D3DApp(D3DApp& rhs) = delete;
+	D3DApp& operator=(D3DApp& rhs) = delete;
 private:
 	// Timer instance, passed in Main
 	Timer* mTimer = nullptr;
@@ -133,10 +134,13 @@ private:
 	bool mResizing = false;			// Used to terminate drawing while resizing
 
 private:
+	// Initial window dimensions
 	UINT mClientWidth = 800;		// Window dimensions,
 	UINT mClientHeight = 600;		// used for OnResize()
 
+	// ************************
 	// Initialization functions
+	// ************************
 
 public:
 	
@@ -150,10 +154,10 @@ private:
 	inline void CreateFenceAndQueryDescriptorSizes();	// Create ID3D12Fence and get descriptor sizes
 	inline void CreateCommandObjects();					// Create command queue, allocator, list
 	inline void CreateSwapChain();						// Create IDXGISwapChain, along with two buffers
-	inline void CreateDescriptorHeaps();				// Create arrays of descriptors
+	inline void CreateRTVAndDSVDescriptorHeaps();		// Create arrays of descriptors
 
-	void BuildDescriptorHeaps();
-	void BuildConstantBuffers();
+	void CreateConstantBufferHeap();					// Create shader-visible CBV heap
+	void BuildConstantBuffers();						
 	void BuildRootSignature();
 	void BuildShadersAndInputLayout();
 	void BuildBoxGeometry();

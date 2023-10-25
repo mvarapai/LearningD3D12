@@ -3,6 +3,20 @@
 #include "d3dUtil.h"
 #include <wrl.h>
 
+// ***********************************************************************
+//			UploadBuffer.h
+// 
+// Wrapper class for creating a buffer resource on the upload heap,
+// so that it can be modified by the CPU during runtime.
+// 
+// Constructor creates commited resource with upload heap and maps its
+// contents to the class member with pointer to the data.
+// 
+// CopyData(int elementIndex, const T& data) - copies contents of T
+// to the [elementIndex] entry to the buffer, using CB padding if necessary.
+// Is used to copy only one element, for an array an overload can be used.
+// 
+// ***********************************************************************
 template<typename T>
 class UploadBuffer
 {
@@ -19,24 +33,18 @@ public:
 		if (isConstantBuffer)
 			mElementByteSize = CalcConstantBufferByteSize(sizeof(T));
 
-		// Basic upload heap
-		D3D12_HEAP_PROPERTIES hp = { };
-		hp.Type = D3D12_HEAP_TYPE_UPLOAD;
-		hp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-		hp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		hp.CreationNodeMask = 1;
-		hp.VisibleNodeMask = 1;
+		// Memory allocation info
+		D3D12_HEAP_PROPERTIES hp = HeapProperties(D3D12_HEAP_TYPE_UPLOAD);
 		
 		// Upload buffer description
-		D3D12_RESOURCE_DESC bufferDesc = BufferDesc(
-				static_cast<UINT64>(mElementByteSize * elementCount));
+		D3D12_RESOURCE_DESC bufferDesc = BufferDesc(static_cast<UINT64>(mElementByteSize * elementCount));
 
 		// Create upload buffer and commit it to the GPU heap
 		ThrowIfFailed(device->CreateCommittedResource(
 			&hp,								// Upload heap properties
 			D3D12_HEAP_FLAG_NONE,				
 			&bufferDesc,						// Resource description
-			D3D12_RESOURCE_STATE_COMMON,	// Initial state
+			D3D12_RESOURCE_STATE_COMMON,		// Initial state
 			nullptr,
 			IID_PPV_ARGS(mUploadBuffer.GetAddressOf())));
 
@@ -74,6 +82,15 @@ public:
 	{
 		memcpy(&mMappedData[elementIndex * mElementByteSize],
 			&data, sizeof(T));
+	}
+
+	// Convenience method to copy an array of data, including CB padding
+	void CopyData(int firstElementIndex, int numElements, const T* dataArray)
+	{
+		for (int i = 0; i < numElements; i++)
+		{
+			CopyData(firstElementIndex + i, dataArray[i]);
+		}
 	}
 
 private:

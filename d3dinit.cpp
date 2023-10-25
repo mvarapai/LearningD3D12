@@ -27,19 +27,34 @@ D3DApp::D3DApp(Timer* timer)
 	mTimer = timer;
 }
 
-// Get the instance of the D3DApp, or create one
+// Getter for the static D3DApp instance
 D3DApp* D3DApp::GetApp() { return mApp; }
 
-// Get paused state
+/**
+* Getter function for paused state.
+* @return True if the application is paused,
+* false otherwise
+*/
 bool D3DApp::IsPaused() { return mAppPaused; }
 
-// Get aspect ratio
+/**
+* Function that returns the ratio of window width to height.
+* @return Aspect ratio
+*/
 float D3DApp::AspectRatio()
 {
 	return static_cast<float>(mClientWidth) / mClientHeight;
 }
 
-// Create window and initialize DirectX
+/**
+* Create and intialize DirectX and the game window.
+* Sets the timer before the creation of a window so that
+* first WndProc call can have access to it.
+* 
+* @param hInst - window instance
+* @param nCmdShow - window show command
+* @param timer - pointer to Time class instance
+*/
 void D3DApp::Initialize(HINSTANCE hInst, int nCmdShow, Timer* timer)
 {
 	new D3DApp(timer);
@@ -47,11 +62,10 @@ void D3DApp::Initialize(HINSTANCE hInst, int nCmdShow, Timer* timer)
 	mApp->InitD3D();
 }
 
-// Initialize DirectX
+/// Calls D3D initialization functions
 void D3DApp::InitD3D()
 {
 	// Enable the debug layer
-
 #if defined(DEBUG) || defined(_DEBUG)
 	{	
 		ThrowIfFailed(D3D12GetDebugInterface(
@@ -60,27 +74,40 @@ void D3DApp::InitD3D()
 	}
 #endif
 
+	// Create device and DXGI factory
 	CreateDevice();
+
+	// Create fence
 	CreateFenceAndQueryDescriptorSizes();
 
-	msaaQualityLevels = GetMSAAQualityLevels();
-	//std::wstring text = L"***Quality levels: " + std::to_wstring(msaaQualityLevels) + L"\n";
-	//OutputDebugString(text.c_str());
+	// Get information about quality levels
 
+	msaaQualityLevels = GetMSAAQualityLevels();
+	std::wstring text = L"***Quality levels: " + std::to_wstring(msaaQualityLevels) + L"\n";
+	OutputDebugString(text.c_str());
+
+	// Create command queue, list, allocator
 	CreateCommandObjects();
+
+	// Create back buffer resources in the swap chain
 	CreateSwapChain();
-	CreateDescriptorHeaps();
+
+	// Create descriptor heaps for RTV and DSV
+	CreateRTVAndDSVDescriptorHeaps();
 	
 	// Do the initial resize
+	// Back buffer array and DS buffers are reset and resized
 	OnResize();		// Executes command list
-	//LogAdapters();
+
+	// Debug output
+	LogAdapters();
 
 	// Reset the command list
 	ThrowIfFailed(mCommandList->Reset(mCommandAllocator.Get(), nullptr));
 
 	// Create other objects
 
-	BuildDescriptorHeaps();
+	CreateConstantBufferHeap();
 	BuildConstantBuffers();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
@@ -201,7 +228,7 @@ inline void D3DApp::CreateSwapChain()
 }
 
 // Create descriptor heaps - RTV and DSV
-inline void D3DApp::CreateDescriptorHeaps()
+inline void D3DApp::CreateRTVAndDSVDescriptorHeaps()
 {
 	// Create render target view heap, containing two views
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = { };
@@ -224,29 +251,31 @@ inline void D3DApp::CreateDescriptorHeaps()
 		&dsvHeapDesc, IID_PPV_ARGS(mDsvHeap.GetAddressOf())));
 }
 
-// Gets buffers from swap chain and creates views for them
-// Called from OnResize() because it stores buffers
+// Gets buffers from swap chain and creates views for them.
+// Stores swap chain buffers in the array field.
 inline void D3DApp::CreateRenderTargetView()
 {
+	// Get pointer to the start of RTV heap
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle =
 		mRtvHeap->GetCPUDescriptorHandleForHeapStart();
 
+	// Iterate through buffers
 	for (UINT i = 0; i < swapChainBufferCount; i++)
 	{
-		// Get pointer to the buffer resource
+		// Store the i'th swap chain buffer in the array
 		ThrowIfFailed(mSwapChain->GetBuffer(
 			i, IID_PPV_ARGS(mSwapChainBuffer[i].GetAddressOf())));
 
-		// Create a descriptor to it
+		// Create a descriptor to the i'th buffer
 		md3dDevice->CreateRenderTargetView(
 			mSwapChainBuffer[i].Get(), nullptr, rtvHeapHandle);
 
-		// Offset the descriptor handle
+		// Offset the descriptor pointer to its size for the next entry
 		rtvHeapHandle.ptr += (SIZE_T)mRtvDescriptorSize;
 	}
 }
 
-// Create a DS object, commit it to the GPU and create a descriptor
+// Create a DS resource, commit it to the GPU and create a descriptor
 inline void D3DApp::CreateDepthStencilBufferAndView()
 {
 	D3D12_RESOURCE_DESC depthStencilDesc = { };
@@ -296,7 +325,7 @@ inline void D3DApp::CreateDepthStencilBufferAndView()
 }
 
 // Create CBV heap with one element and shader visible flag
-void D3DApp::BuildDescriptorHeaps()
+void D3DApp::CreateConstantBufferHeap()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = { };
 	cbvHeapDesc.NumDescriptors = 1;
@@ -630,7 +659,11 @@ void D3DApp::FlushCommandQueue()
 }
 
 // Called to change back and DS buffer sizes.
-// Due to changes in screen dimensions applies new aspect ratio.
+// - Swap chain buffers are resized and new RTV is created.
+// - DS buffer is recreated with new dimensions along with DSV
+// - Command list is executed
+// - Viewport and scissor rects are reset
+// - Due to change of aspect ratio projection matrix is changed
 void D3DApp::OnResize()
 {
 	// Make sure all GPU commands are executed to avoid resource hazard
@@ -715,7 +748,6 @@ void D3DApp::CalculateFrameStats()
 
 		frameCnt = 0;
 		timeElapsed += 1.0f;
-
 	}
 }
 

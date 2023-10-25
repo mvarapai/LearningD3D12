@@ -29,7 +29,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance,// Handle to app in Windows
 	D3DApp::Initialize(hInstance, nCmdShow, g_timer);
 
 	D3DApp::GetApp()->Run();
-	
+
 	return 0;
 }
 
