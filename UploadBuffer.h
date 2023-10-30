@@ -1,22 +1,24 @@
+// **************************************************************************
+//							UploadBuffer.h									*
+//																			*
+//	Wrapper class for creating a buffer resource on the upload heap,		*
+//	so that it can be modified by the CPU during runtime.					*
+//																			*
+//	Constructor creates commited resource with upload heap and maps its		*
+//	contents to the class member with pointer to the data.					*
+//																			*
+//	CopyData(int elementIndex, const T& data) - copies contents of T		*
+//	to the [elementIndex] entry to the buffer, using CB padding if necessary*
+//	Is used to copy only one element, for an array an overload can be used.	*
+//																			*
+// **************************************************************************
+
 #pragma once
 
-#include "d3dUtil.h"
 #include <wrl.h>
 
-// ***********************************************************************
-//			UploadBuffer.h
-// 
-// Wrapper class for creating a buffer resource on the upload heap,
-// so that it can be modified by the CPU during runtime.
-// 
-// Constructor creates commited resource with upload heap and maps its
-// contents to the class member with pointer to the data.
-// 
-// CopyData(int elementIndex, const T& data) - copies contents of T
-// to the [elementIndex] entry to the buffer, using CB padding if necessary.
-// Is used to copy only one element, for an array an overload can be used.
-// 
-// ***********************************************************************
+#include "d3dUtil.h"
+
 template<typename T>
 class UploadBuffer
 {

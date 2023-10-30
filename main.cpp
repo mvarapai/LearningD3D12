@@ -30,6 +30,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance,// Handle to app in Windows
 
 	D3DApp::GetApp()->Run();
 
+	delete g_timer;
+
 	return 0;
 }
 

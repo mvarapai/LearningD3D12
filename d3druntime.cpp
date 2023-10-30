@@ -4,20 +4,53 @@
 #include <d3d12.h>
 #include <DirectXMath.h>
 #include <DirectXColors.h>
+#include <windowsx.h>
 
 #include "d3dUtil.h"
 #include "window.h"
 #include "timer.h"
 #include "UploadBuffer.h"
+#include "d3dinit.h"
+#include "RenderItem.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
+void D3DApp::DrawRenderItems()
+{
+	UINT objCBByteSize = CalcConstantBufferByteSize(sizeof(ObjectConstants));
+
+	ID3D12Resource* objectCB = mCurrFrameResource->ObjectCB->Resource();
+
+	// Iterate through render items
+	for (UINT i = 0; i < mAllRenderItems.size(); i++)
+	{
+		RenderItem* ri = mAllRenderItems[i].get();
+
+		D3D12_VERTEX_BUFFER_VIEW vbv = ri->Geo->VertexBufferView();
+		D3D12_INDEX_BUFFER_VIEW ibv = ri->Geo->IndexBufferView();
+
+		mCommandList->IASetVertexBuffers(0, 1, &vbv);
+		mCommandList->IASetIndexBuffer(&ibv);
+		mCommandList->IASetPrimitiveTopology(ri->PrimitiveType);
+
+		mCommandList->SetGraphicsRootDescriptorTable(1,
+			GetPerObjectCBV(mCurrFrameResourceIndex, i));
+
+		SubmeshGeometry submesh = ri->Geo->DrawArgs[ri->Submesh];
+		mCommandList->DrawIndexedInstanced(submesh.IndexCount, 1, submesh.StartIndexLocation,
+			submesh.BaseVertexLocation, 0);
+	}
+}
+
 void D3DApp::Draw()
 {
-	// Reuse the memory
-	ThrowIfFailed(mCommandAllocator->Reset());
-	ThrowIfFailed(mCommandList->Reset(mCommandAllocator.Get(), mPSO.Get()));
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> currCmdAlloc =
+		mCurrFrameResource->CommandListAllocator;
+
+	// Reuse the memory since the frame is processed
+	ThrowIfFailed(currCmdAlloc->Reset());
+	ThrowIfFailed(mCommandList->Reset(currCmdAlloc.Get(), mPSO.Get()));
 
 
 	// To know what to render
@@ -51,21 +84,14 @@ void D3DApp::Draw()
 		descriptorHeaps);
 
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
-
-	D3D12_VERTEX_BUFFER_VIEW VBView = mBoxGeo->VertexBufferView();
-	D3D12_INDEX_BUFFER_VIEW IBView = mBoxGeo->IndexBufferView();
-
-	mCommandList->IASetVertexBuffers(0, 1, &VBView);
-	mCommandList->IASetIndexBuffer(&IBView);
 	
-	mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// Bind CBV to root table
+	// Set pass constants
 	mCommandList->SetGraphicsRootDescriptorTable(0,
-		mCbvHeap->GetGPUDescriptorHandleForHeapStart());
+		GetPassCBV(mCurrFrameResourceIndex));
 
-	mCommandList->DrawIndexedInstanced(mBoxGeo->DrawArgs["box"].IndexCount, 1, 0, 0, 0);
-	
+	// Deaw objects
+	DrawRenderItems();
+
 	// When rendered, change state to present
 	Transition(GetCurrentBackBuffer(),
 		mCommandList.Get(),
@@ -83,11 +109,12 @@ void D3DApp::Draw()
 	// Swap buffers
 	mCurrBackBuffer = (mCurrBackBuffer + 1) % swapChainBufferCount;
 
-	// Wait per frame (to be redone soon)
-	FlushCommandQueue();
+	// Set fence point for current frame resource
+	mCurrFrameResource->Fence = ++mCurrentFence;
+	mCommandQueue->Signal(mFence.Get(), mCurrentFence);
 }
 
-void D3DApp::Update()
+void D3DApp::UpdateCamera()
 {
 	// Convert spherical to Cartesian coordinates
 	float x = mRadius * sinf(mPhi) * cosf(mTheta);
@@ -101,18 +128,72 @@ void D3DApp::Update()
 
 	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
 	XMStoreFloat4x4(&mView, view);
+}
 
-	// World matrix left unchanged
-	XMMATRIX world = XMLoadFloat4x4(&mWorld);
+// Stores world matrices to current frame's per object CB
+void D3DApp::UpdateObjectCBs()
+{
+	UploadBuffer<ObjectConstants>* currObjectCB = mCurrFrameResource->ObjectCB.get();
+	for (std::unique_ptr<RenderItem>& renderItem : mAllRenderItems)
+	{
+		// Only update 'dirty' frames - the ones with old data
+		if (renderItem->numFramesDirty > 0)
+		{
+			// Load world matrix from the structure
+			XMMATRIX world = XMLoadFloat4x4(&renderItem->World);
 
-	// Updated per OnResize() call
+			// Write it to the CB structure
+			ObjectConstants objConstants = { };
+			XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
+
+			// Copy data to current frame's per object CB
+			currObjectCB->CopyData(renderItem->ObjCBIndex, objConstants);
+
+			// One frame updated
+			renderItem->numFramesDirty--;
+		}
+	}
+}
+
+void D3DApp::UpdatePassCB()
+{
+	XMMATRIX view = XMLoadFloat4x4(&mView);
 	XMMATRIX proj = XMLoadFloat4x4(&mProj);
 
-	XMMATRIX worldViewProj = world * view * proj;
+	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
 
-	ObjectConstants objConstants = { };
-	XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(worldViewProj));
-	mObjectCB->CopyData(0, objConstants);
+	XMStoreFloat4x4(&mPassCB.View, XMMatrixTranspose(view));
+	XMStoreFloat4x4(&mPassCB.Proj, XMMatrixTranspose(proj));
+	XMStoreFloat4x4(&mPassCB.ViewProj, XMMatrixTranspose(viewProj));
+
+	UploadBuffer<PassConstants>* currPassCB = mCurrFrameResource->PassCB.get();
+	currPassCB->CopyData(0, mPassCB);
+}
+
+void D3DApp::Update()
+{
+	// Get view matrix ready for copy to current frame's pass CB
+	UpdateCamera();
+
+	// Write to next frame resource
+	mCurrFrameResourceIndex =
+		(mCurrFrameResourceIndex + 1) % NumFrameResources;
+	mCurrFrameResource = mFrameResources[mCurrFrameResourceIndex].get();
+
+	// Check whether the GPU has finished processing current frame
+	if (mCurrFrameResource->Fence != 0
+		&& mFence->GetCompletedValue() < mCurrFrameResource->Fence)
+	{
+		HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
+		ThrowIfFailed(mFence->SetEventOnCompletion(mCurrFrameResource->Fence, eventHandle));
+		WaitForSingleObject(eventHandle, INFINITE);
+		CloseHandle(eventHandle);
+	}
+
+	// Then, after the frame is processed we can update object and pass CBs,
+	// which write to frame resources
+	UpdateObjectCBs();
+	UpdatePassCB();
 }
 
 void D3DApp::OnMouseDown(WPARAM btnState, int x, int y)
@@ -152,4 +233,131 @@ void D3DApp::OnMouseMove(WPARAM btnState, int x, int y)
 	// Update last position
 	mLastMousePos.x = x;
 	mLastMousePos.y = y;
+}
+
+// Passed from default WndProc function
+LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+		// When the window is either activated or deactivated
+	case WM_ACTIVATE:
+		// If deactivated, pause
+		if (LOWORD(wParam) == WA_INACTIVE)
+		{
+			mAppPaused = true;
+			mTimer->Stop();
+		}
+		// Else, start the timer
+		else
+		{
+			mAppPaused = false;
+			mTimer->Start();
+		}
+		return 0;
+
+		// Called when user resizes the window
+	case WM_SIZE:
+		mClientWidth = LOWORD(lParam);
+		mClientHeight = HIWORD(lParam);
+
+		if (md3dDevice)
+		{
+			if (wParam == SIZE_MINIMIZED)
+			{
+				mAppPaused = true;
+				mMinimized = true;
+				mMaximized = false;
+			}
+			else if (wParam == SIZE_MAXIMIZED)
+			{
+				mAppPaused = false;
+				mMinimized = false;
+				mMaximized = true;
+				// Since it is a change in window size,
+				// and the window is visible, redraw
+				OnResize();
+			}
+			else if (wParam == SIZE_RESTORED)
+			{
+				if (mMinimized)
+				{
+					mAppPaused = false;
+					mMinimized = false;
+					OnResize();
+				}
+				else if (mMaximized)
+				{
+					mAppPaused = false;
+					mMaximized = false;
+					OnResize();
+				}
+				else if (mResizing)
+				{
+					// While the window is resizing, we wait.
+					// It is done in order to save on performance,
+					// because recreating swap chain buffers every
+					// frame would be too resource ineffective.
+				}
+				else
+				{
+					// Any other call, we resize the buffers
+					OnResize();
+				}
+			}
+		}
+		return 0;
+
+		// Pause the app when window is resizing
+	case WM_ENTERSIZEMOVE:
+		mAppPaused = true;
+		mResizing = true;
+		mTimer->Stop();
+		return 0;
+		// Resume when resize button is released
+	case WM_EXITSIZEMOVE:
+		mAppPaused = false;
+		mResizing = false;
+		mTimer->Start();
+		OnResize();
+		return 0;
+
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		return 0;
+
+		// Process unhandled menu calls
+	case WM_MENUCHAR:
+		return MAKELRESULT(0, MNC_CLOSE);
+
+		// Prevent the window from becoming too small
+	case WM_GETMINMAXINFO:
+		((MINMAXINFO*)lParam)->ptMinTrackSize.x = 200;
+		((MINMAXINFO*)lParam)->ptMinTrackSize.y = 200;
+		return 0;
+
+	case WM_LBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+		OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		return 0;
+
+	case WM_LBUTTONUP:
+	case WM_MBUTTONUP:
+	case WM_RBUTTONUP:
+		OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		return 0;
+
+	case WM_MOUSEMOVE:
+		OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		return 0;
+
+	case WM_KEYUP:
+		if (wParam == VK_ESCAPE)
+		{
+			PostQuitMessage(0);
+			return 0;
+		}
+	}
+	return DefWindowProc(hwnd, msg, wParam, lParam);
 }

@@ -6,12 +6,14 @@
 #include "d3dinit.h"
 #include "d3dUtil.h"
 #include "UploadBuffer.h"
+#include "RenderItem.h"
 
 #include <windowsx.h>
 #include <vector>
 #include <array>
 #include <DirectXColors.h>
 #include <d3dcompiler.h>
+#include <memory>
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -106,6 +108,8 @@ void D3DApp::InitD3D()
 	ThrowIfFailed(mCommandList->Reset(mCommandAllocator.Get(), nullptr));
 
 	// Create other objects
+
+	BuildFrameResources();
 
 	CreateConstantBufferHeap();
 	BuildConstantBuffers();
@@ -324,69 +328,62 @@ inline void D3DApp::CreateDepthStencilBufferAndView()
 		D3D12_RESOURCE_STATE_DEPTH_WRITE);
 }
 
-// Create CBV heap with one element and shader visible flag
-void D3DApp::CreateConstantBufferHeap()
+// Create frame resouce objects
+void D3DApp::BuildFrameResources()
 {
-	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = { };
-	cbvHeapDesc.NumDescriptors = 1;
-	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	cbvHeapDesc.NodeMask = 0;
-	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&cbvHeapDesc,
-		IID_PPV_ARGS(mCbvHeap.GetAddressOf())));
-}
-
-void D3DApp::BuildConstantBuffers()
-{
-	mObjectCB = std::make_unique<UploadBuffer<ObjectConstants>>
-		(md3dDevice.Get(), 1, true);
-
-	UINT objCBByteSize =
-		CalcConstantBufferByteSize(sizeof(ObjectConstants));
-
-	D3D12_GPU_VIRTUAL_ADDRESS cbAddress =
-		mObjectCB->Resource()->GetGPUVirtualAddress();
-
-	int boxCBufIndex = 0;
-	cbAddress += boxCBufIndex * objCBByteSize;
-
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = { };
-	cbvDesc.BufferLocation = cbAddress;
-	cbvDesc.SizeInBytes = objCBByteSize;
-
-	md3dDevice->CreateConstantBufferView(&cbvDesc,
-		mCbvHeap->GetCPUDescriptorHandleForHeapStart());
+	for (int i = 0; i < NumFrameResources; i++)
+	{
+		mFrameResources.push_back(
+			std::make_unique<FrameResource>(md3dDevice.Get(), 1, 1));
+	}
 }
 
 // Create root signature
 void D3DApp::BuildRootSignature()
 {
 	// Root parameter can be a table, root descriptor or root constants.
-	D3D12_ROOT_PARAMETER slotRootParameter[1] = { };
+	D3D12_ROOT_PARAMETER slotRootParameters[2] = { };
 
+	// Initialize first parameter root descriptor
+	D3D12_DESCRIPTOR_RANGE passDescriptorTable = { };
+	passDescriptorTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	passDescriptorTable.NumDescriptors = 1;
+	passDescriptorTable.BaseShaderRegister = 0;
+	passDescriptorTable.RegisterSpace = 0;
+	passDescriptorTable.OffsetInDescriptorsFromTableStart =
+		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// Create a single range with only one descriptor at register 0
 	D3D12_DESCRIPTOR_RANGE cbvTable = { };
 	cbvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	cbvTable.NumDescriptors = 1;
-	cbvTable.BaseShaderRegister = 0;
+	cbvTable.NumDescriptors = gNumObjects;
+	cbvTable.BaseShaderRegister = 1;
 	cbvTable.RegisterSpace = 0;
 	cbvTable.OffsetInDescriptorsFromTableStart =
 		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// Configure root parameter
-	slotRootParameter[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	slotRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	// Specify that the parameter is a descriptor table
-	slotRootParameter[0].ParameterType
+	slotRootParameters[0].ParameterType
 		= D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	// Supply ranges of the descriptor table
-	slotRootParameter[0].DescriptorTable.pDescriptorRanges = &cbvTable;
-	slotRootParameter[0].DescriptorTable.NumDescriptorRanges = 1;
+	slotRootParameters[0].DescriptorTable.pDescriptorRanges = &passDescriptorTable;
+	slotRootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
+
+	// Configure root parameter
+	slotRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	// Specify that the parameter is a descriptor table
+	slotRootParameters[1].ParameterType
+		= D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	// Supply ranges of the descriptor table
+	slotRootParameters[1].DescriptorTable.pDescriptorRanges = &cbvTable;
+	slotRootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
 
 	// Create root signature description
 	D3D12_ROOT_SIGNATURE_DESC rootDesc = { };
-	rootDesc.NumParameters = 1;
-	rootDesc.pParameters = slotRootParameter;
+	rootDesc.NumParameters = _countof(slotRootParameters);
+	rootDesc.pParameters = slotRootParameters;
 	rootDesc.NumStaticSamplers = 0;
 	rootDesc.pStaticSamplers = nullptr;
 	rootDesc.Flags =
@@ -514,6 +511,13 @@ void D3DApp::BuildBoxGeometry()
 	submesh.BaseVertexLocation = 0;				// Zero-indexed vertex
 
 	mBoxGeo->DrawArgs["box"] = submesh;
+
+	std::unique_ptr<RenderItem> renderItem = std::make_unique<RenderItem>();
+	renderItem->Geo = mBoxGeo.get();
+	renderItem->ObjCBIndex = 0;
+	renderItem->Submesh = "box";
+
+	mAllRenderItems.push_back(std::move(renderItem));
 }
 
 void D3DApp::BuildPSO()
@@ -828,131 +832,4 @@ void D3DApp::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format)
 
 		OutputDebugString(text.c_str());
 	}
-}
-
-// Passed from default WndProc function
-LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	switch (msg)
-	{
-		// When the window is either activated or deactivated
-	case WM_ACTIVATE:
-		// If deactivated, pause
-		if (LOWORD(wParam) == WA_INACTIVE)
-		{
-			mAppPaused = true;
-			mTimer->Stop();
-		}
-		// Else, start the timer
-		else
-		{
-			mAppPaused = false;
-			mTimer->Start();
-		}
-		return 0;
-
-		// Called when user resizes the window
-	case WM_SIZE:
-		mClientWidth = LOWORD(lParam);
-		mClientHeight = HIWORD(lParam);
-
-		if (md3dDevice)
-		{
-			if (wParam == SIZE_MINIMIZED)
-			{
-				mAppPaused = true;
-				mMinimized = true;
-				mMaximized = false;
-			}
-			else if (wParam == SIZE_MAXIMIZED)
-			{
-				mAppPaused = false;
-				mMinimized = false;
-				mMaximized = true;
-				// Since it is a change in window size,
-				// and the window is visible, redraw
-				OnResize();
-			}
-			else if (wParam == SIZE_RESTORED)
-			{
-				if (mMinimized)
-				{
-					mAppPaused = false;
-					mMinimized = false;
-					OnResize();
-				}
-				else if (mMaximized)
-				{
-					mAppPaused = false;
-					mMaximized = false;
-					OnResize();
-				}
-				else if (mResizing)
-				{
-					// While the window is resizing, we wait.
-					// It is done in order to save on performance,
-					// because recreating swap chain buffers every
-					// frame would be too resource ineffective.
-				}
-				else
-				{
-					// Any other call, we resize the buffers
-					OnResize();
-				}
-			}
-		}
-		return 0;
-
-		// Pause the app when window is resizing
-	case WM_ENTERSIZEMOVE:
-		mAppPaused = true;
-		mResizing = true;
-		mTimer->Stop();
-		return 0;
-		// Resume when resize button is released
-	case WM_EXITSIZEMOVE:
-		mAppPaused = false;
-		mResizing = false;
-		mTimer->Start();
-		OnResize();
-		return 0;
-
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		return 0;
-
-		// Process unhandled menu calls
-	case WM_MENUCHAR:
-		return MAKELRESULT(0, MNC_CLOSE);
-
-		// Prevent the window from becoming too small
-	case WM_GETMINMAXINFO:
-		((MINMAXINFO*)lParam)->ptMinTrackSize.x = 200;
-		((MINMAXINFO*)lParam)->ptMinTrackSize.y = 200;
-		return 0;
-
-	case WM_LBUTTONDOWN:
-	case WM_MBUTTONDOWN:
-	case WM_RBUTTONDOWN:
-		OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		return 0;
-
-	case WM_LBUTTONUP:
-	case WM_MBUTTONUP:
-	case WM_RBUTTONUP:
-		OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		return 0;
-
-	case WM_MOUSEMOVE:
-		OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		return 0;
-
-	case WM_KEYUP:
-		if (wParam == VK_ESCAPE)
-		{
-			PostQuitMessage(0);
-			return 0;
-		}
-	}
-	return DefWindowProc(hwnd, msg, wParam, lParam);
 }

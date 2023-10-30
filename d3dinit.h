@@ -12,19 +12,10 @@
 #include "MathHelper.h"
 #include "d3dUtil.h"
 #include "UploadBuffer.h"
+#include "FrameResource.h"
+#include "RenderItem.h"
 
-// Structure describing vertex buffer element format
-struct Vertex
-{
-	DirectX::XMFLOAT3 Pos;	// Position in non-homogeneous coordinates
-	DirectX::XMFLOAT4 Color; // RGBA color
-};
-
-// Structure of the constant buffer
-struct ObjectConstants
-{
-	DirectX::XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
-};
+#include "structures.h"
 
 // Class that initializes and operates DirectX 12
 class D3DApp
@@ -52,8 +43,9 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Device>				md3dDevice = nullptr;
 
 	// Flush management
-	UINT64 mCurrentFence = 0;
 	Microsoft::WRL::ComPtr<ID3D12Fence>					mFence = nullptr;
+	std::vector<std::unique_ptr<FrameResource>>			mFrameResources;
+	FrameResource*										mCurrFrameResource = nullptr;
 
 	// Command objects
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue>			mCommandQueue = nullptr;
@@ -72,7 +64,6 @@ private:
 	// Instances of GPU resources
 
 	static const int swapChainBufferCount = 2;
-	int	mCurrBackBuffer = 0;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mDepthStencilBuffer = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mSwapChainBuffer[swapChainBufferCount];
 
@@ -80,17 +71,31 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mCbvHeap = nullptr;
 
 	// Contains ID3D12Resource instances
-	std::unique_ptr<UploadBuffer<ObjectConstants>> mObjectCB = nullptr;
 	std::unique_ptr<MeshGeometry> mBoxGeo = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3DBlob> mvsByteCode = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob> mpsByteCode = nullptr;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
+	std::vector<std::unique_ptr<RenderItem>> mAllRenderItems;
 
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO = nullptr;
 
-	// Matrices that define scene look
+	D3D12_VIEWPORT mViewport = { };
+	D3D12_RECT mScissorRect = { };
+
+	const DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	const DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+	/******************************************************
+	 *					Variables
+	 ******************************************************/
+private:
+	PassConstants mPassCB = { };
+
+	UINT64 mCurrentFence = 0;
+	int mCurrFrameResourceIndex = 0;
+	int	mCurrBackBuffer = 0;
 
 	DirectX::XMFLOAT4X4 mWorld = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 mView = MathHelper::Identity4x4();
@@ -103,25 +108,12 @@ private:
 
 	POINT mLastMousePos = { };
 
-	// Structures containing window sizes
-
-	D3D12_VIEWPORT mViewport = { };
-	D3D12_RECT mScissorRect = { };
-
 	// Descriptor sizes
-
 	UINT mRtvDescriptorSize = 0;
 	UINT mCbvSrvDescriptorSize = 0;
 	UINT mDsvDescriptorSize = 0;
 
 private:
-	// Buffer formats
-
-	const DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	const DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-
-	// 4X MSAA
-
 	int msaaQualityLevels = 0;
 	bool msaaEnabled = false;
 
@@ -133,15 +125,17 @@ private:
 	bool mMinimized = false;
 	bool mResizing = false;			// Used to terminate drawing while resizing
 
+public:
+	int gNumObjects = 1;
+	static const int NumFrameResources = 3;
 private:
 	// Initial window dimensions
 	UINT mClientWidth = 800;		// Window dimensions,
 	UINT mClientHeight = 600;		// used for OnResize()
 
-	// ************************
-	// Initialization functions
-	// ************************
-
+/**********************************************************
+ *				Initialization functions
+ **********************************************************/
 public:
 	
 	void InitD3D();										// Create DirectX objects
@@ -163,6 +157,8 @@ private:
 	void BuildBoxGeometry();
 	void BuildPSO();
 
+	void BuildFrameResources();
+
 	// Used in OnResize():
 	inline void CreateRenderTargetView();				// Create descriptors for swap chain buffers
 	inline void CreateDepthStencilBufferAndView();		// Create depth/stencil buffer and descriptor
@@ -176,6 +172,10 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
 
+	// Getters for CBVs
+	D3D12_GPU_DESCRIPTOR_HANDLE GetPassCBV(UINT frameResouceIndex) const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetPerObjectCBV(UINT frameResouceIndex, UINT objectIndex) const;
+
 	// Get current back buffer resource
 	ID3D12Resource* GetCurrentBackBuffer();
 public:
@@ -187,7 +187,12 @@ public:
 	int  Run();						// Main program cycle
 private:
 	void Draw();					// Function to execute draw calls
+	void DrawRenderItems();
+
 	void Update();					// Function for game logic
+	void UpdateCamera();
+	void UpdatePassCB();
+	void UpdateObjectCBs();
 
 	void FlushCommandQueue();		// Used to wait till GPU finishes execution
 	void OnResize();				// Called when user finishes resizing
