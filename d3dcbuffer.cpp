@@ -5,7 +5,7 @@ void D3DApp::CreateConstantBufferHeap()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = { };
 	// Slot 0 will be occupied by the root constants
-	cbvHeapDesc.NumDescriptors = NumFrameResources + NumFrameResources * gNumObjects;
+	cbvHeapDesc.NumDescriptors = gNumFrameResources + gNumFrameResources * gNumObjects;
 	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	cbvHeapDesc.NodeMask = 0;
@@ -17,7 +17,7 @@ void D3DApp::CreateConstantBufferHeap()
 // - first 3 elements are pass CBVs
 // - next are per object CBVs, the CPU handle of each can be accessed with
 // the following offset: 
-//	= NumFrameResources		* mCbvSrvDescriptorSize
+//	= gNumFrameResources		* mCbvSrvDescriptorSize
 //  + frameResourceIndex	* (mCbvSrvDescriptorSize * gNumObjects)
 //  + objectIndex			* mCbvSrvDescriptorSize
 void D3DApp::BuildConstantBuffers()
@@ -36,7 +36,7 @@ void D3DApp::BuildConstantBuffers()
 		mCbvHeap->GetCPUDescriptorHandleForHeapStart();
 
 	// Set pass constants as first 3 elements
-	for (int frameResourceIndex = 0; frameResourceIndex < NumFrameResources; frameResourceIndex++)
+	for (int frameResourceIndex = 0; frameResourceIndex < gNumFrameResources; frameResourceIndex++)
 	{
 		// Set the pass constant buffer view
 		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = { };
@@ -53,7 +53,7 @@ void D3DApp::BuildConstantBuffers()
 	// per object constant buffer views, creating an offset of 3 * passCBByteSize
 
 	// Then set object constants 
-	for (int frameResourceIndex = 0; frameResourceIndex < NumFrameResources; frameResourceIndex++)
+	for (int frameResourceIndex = 0; frameResourceIndex < gNumFrameResources; frameResourceIndex++)
 	{
 		// Since now we are working with resource that stores
 		// multiple objects, we will have to offset GPU virtual address
@@ -92,7 +92,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3DApp::GetPerObjectCBV(UINT frameResouceIndex, UINT
 	D3D12_GPU_DESCRIPTOR_HANDLE perObjectHandle = mCbvHeap->GetGPUDescriptorHandleForHeapStart();
 
 	// Offset to the start of per object CBVs
-	perObjectHandle.ptr += static_cast<UINT64>(NumFrameResources) * mCbvSrvDescriptorSize;
+	perObjectHandle.ptr += static_cast<UINT64>(gNumFrameResources) * mCbvSrvDescriptorSize;
 
 	// Offset to the start of current frame's per object CBVs
 	perObjectHandle.ptr += static_cast<UINT64>(frameResouceIndex) * gNumObjects * mCbvSrvDescriptorSize;

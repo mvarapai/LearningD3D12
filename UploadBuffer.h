@@ -39,7 +39,7 @@ public:
 		D3D12_HEAP_PROPERTIES hp = HeapProperties(D3D12_HEAP_TYPE_UPLOAD);
 		
 		// Upload buffer description
-		D3D12_RESOURCE_DESC bufferDesc = BufferDesc(static_cast<UINT64>(mElementByteSize * elementCount));
+		D3D12_RESOURCE_DESC bufferDesc = BufferDesc(static_cast<UINT64>(mElementByteSize) * elementCount);
 
 		// Create upload buffer and commit it to the GPU heap
 		ThrowIfFailed(device->CreateCommittedResource(

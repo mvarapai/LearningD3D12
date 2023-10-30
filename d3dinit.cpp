@@ -128,7 +128,7 @@ void D3DApp::InitD3D()
 }
 
 // Create D3D device and DXGI factory
-inline void D3DApp::CreateDevice()
+void D3DApp::CreateDevice()
 {
 	// Create dxgi factory
 	ThrowIfFailed(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(
@@ -155,7 +155,7 @@ inline void D3DApp::CreateDevice()
 }
 
 // Creates fence and gets descriptor increment sizes
-inline void D3DApp::CreateFenceAndQueryDescriptorSizes()
+void D3DApp::CreateFenceAndQueryDescriptorSizes()
 {
 	// Create Fence and set 0 as initial value
 	ThrowIfFailed(md3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
@@ -172,7 +172,7 @@ inline void D3DApp::CreateFenceAndQueryDescriptorSizes()
 }
 
 // Create command queue, allocator, list
-inline void D3DApp::CreateCommandObjects()
+void D3DApp::CreateCommandObjects()
 {
 	// Create command queue
 
@@ -203,7 +203,7 @@ inline void D3DApp::CreateCommandObjects()
 }
 
 // Create/recreate swap chain, potentially used to enable MSAA
-inline void D3DApp::CreateSwapChain()
+void D3DApp::CreateSwapChain()
 {
 	// Release previous swap chain we will be recreating
 	mSwapChain.Reset(); // Reset the pointer itself
@@ -232,7 +232,7 @@ inline void D3DApp::CreateSwapChain()
 }
 
 // Create descriptor heaps - RTV and DSV
-inline void D3DApp::CreateRTVAndDSVDescriptorHeaps()
+void D3DApp::CreateRTVAndDSVDescriptorHeaps()
 {
 	// Create render target view heap, containing two views
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = { };
@@ -257,7 +257,7 @@ inline void D3DApp::CreateRTVAndDSVDescriptorHeaps()
 
 // Gets buffers from swap chain and creates views for them.
 // Stores swap chain buffers in the array field.
-inline void D3DApp::CreateRenderTargetView()
+void D3DApp::CreateRenderTargetView()
 {
 	// Get pointer to the start of RTV heap
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle =
@@ -280,7 +280,7 @@ inline void D3DApp::CreateRenderTargetView()
 }
 
 // Create a DS resource, commit it to the GPU and create a descriptor
-inline void D3DApp::CreateDepthStencilBufferAndView()
+void D3DApp::CreateDepthStencilBufferAndView()
 {
 	D3D12_RESOURCE_DESC depthStencilDesc = { };
 	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -331,7 +331,7 @@ inline void D3DApp::CreateDepthStencilBufferAndView()
 // Create frame resouce objects
 void D3DApp::BuildFrameResources()
 {
-	for (int i = 0; i < NumFrameResources; i++)
+	for (int i = 0; i < gNumFrameResources; i++)
 	{
 		mFrameResources.push_back(
 			std::make_unique<FrameResource>(md3dDevice.Get(), 1, 1));

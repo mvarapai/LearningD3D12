@@ -177,7 +177,7 @@ void D3DApp::Update()
 
 	// Write to next frame resource
 	mCurrFrameResourceIndex =
-		(mCurrFrameResourceIndex + 1) % NumFrameResources;
+		(mCurrFrameResourceIndex + 1) % gNumFrameResources;
 	mCurrFrameResource = mFrameResources[mCurrFrameResourceIndex].get();
 
 	// Check whether the GPU has finished processing current frame
