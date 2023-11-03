@@ -22,6 +22,7 @@
 #include "FrameResource.h"
 #include "RenderItem.h"
 #include "structures.h"
+#include "geometry.h"
 
 // Class that initializes and operates DirectX 12
 class D3DApp
@@ -100,7 +101,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mPSO = nullptr;
 
 	// Geometry management
-	std::unique_ptr<MeshGeometry>						mBoxGeo = nullptr;
+	std::unique_ptr<MeshGeometry<Vertex>>				mMeshGeometry = nullptr;
 	std::vector<std::unique_ptr<RenderItem>>			mAllRenderItems;
 
 	// Viewport and scissor rect properties

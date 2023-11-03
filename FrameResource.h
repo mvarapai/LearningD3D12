@@ -1,12 +1,10 @@
-/*********** FrameResource.h ****************
- *	Used to store constant buffer data		*
- *	and command allocator used to render	*
- *	associated frame.						*
- *											*
- *	To track usage of the frame resource,	*
- *	fence point is recorded.				*
- ********************************************/
-
+/*****************************************************************//**
+ * \file   FrameResource.h
+ * \brief  Defines frame resources container class
+ * 
+ * \author Mikalai Varapai
+ * \date   October 2023
+ *********************************************************************/
 #pragma once
 
 #include <d3d12.h>

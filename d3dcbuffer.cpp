@@ -1,3 +1,10 @@
+/*****************************************************************//**
+ * \file   d3dcbuffer.cpp
+ * \brief  Contains implementations for D3DApp constant buffer methods.
+ * 
+ * \author Mikalai Varapai
+ * \date   October 2023
+ *********************************************************************/
 #include "d3dinit.h"
 
 // Create CBV heap with pass and per object CBVs and shader visible flag

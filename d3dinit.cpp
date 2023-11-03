@@ -433,91 +433,17 @@ void D3DApp::BuildShadersAndInputLayout()
 
 void D3DApp::BuildBoxGeometry()
 {
-	std::array<Vertex, 8> vertices =
-	{
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green) }),
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta) })
-	};
+	// Initialize MeshGeometry
+	mMeshGeometry = std::make_unique<MeshGeometry<Vertex>>(md3dDevice.Get(), mCommandList.Get());
 
-	std::array<std::uint16_t, 36> indices =
-	{
-		// front face
-		0, 1, 2,
-		0, 2, 3,
+	std::unique_ptr<RenderItem> renderItem = std::make_unique<RenderItem>(
+		RenderItem::CreatePaintedCube(mMeshGeometry.get(), 0));
 
-		// back face
-		4, 6, 5,
-		4, 7, 6,
-
-		// left face
-		4, 5, 1,
-		4, 1, 0,
-
-		// right face
-		3, 2, 6,
-		3, 6, 7,
-
-		// top face
-		1, 5, 6,
-		1, 6, 2,
-
-		// bottom face
-		4, 0, 3,
-		4, 3, 7
-	};
-
-	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
-	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
-
-	mBoxGeo = std::make_unique<MeshGeometry>();
-	mBoxGeo->Name = "boxGeo";
-
-	// Load memory in blobs
-	ThrowIfFailed(D3DCreateBlob(vbByteSize, 
-		mBoxGeo->VertexBufferCPU.GetAddressOf()));
-	CopyMemory(mBoxGeo->VertexBufferCPU->GetBufferPointer(),
-		vertices.data(), vbByteSize);
-
-	ThrowIfFailed(D3DCreateBlob(ibByteSize, 
-		mBoxGeo->IndexBufferCPU.GetAddressOf()));
-	CopyMemory(mBoxGeo->IndexBufferCPU->GetBufferPointer(),
-		indices.data(), ibByteSize);
-
-	// Create default vertex and index buffers and load data
-
-	mBoxGeo->VertexBufferGPU = CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), vertices.data(), vbByteSize,
-		mBoxGeo->VertexBufferUploader);
-
-	mBoxGeo->IndexBufferGPU = CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), indices.data(), ibByteSize,
-		mBoxGeo->IndexBufferUploader);
-
-	mBoxGeo->VertexByteStride = sizeof(Vertex); // One vertex offset
-	mBoxGeo->VertexBufferByteSize = vbByteSize; // VB offset
-	mBoxGeo->IndexFormat = DXGI_FORMAT_R16_UINT;
-	mBoxGeo->IndexBufferByteSize = ibByteSize;  // IB offset
-
-	SubmeshGeometry submesh;
-
-	submesh.IndexCount = (UINT)indices.size();	// How mush indices to process
-	submesh.StartIndexLocation = 0;				// From where to read indices
-	submesh.BaseVertexLocation = 0;				// Zero-indexed vertex
-
-	mBoxGeo->DrawArgs["box"] = submesh;
-
-	std::unique_ptr<RenderItem> renderItem = std::make_unique<RenderItem>();
-	renderItem->Geo = mBoxGeo.get();
-	renderItem->ObjCBIndex = 0;
-	renderItem->Submesh = "box";
+	// Create GPU resources
+	mMeshGeometry->ConstructMeshGeometry();
 
 	mAllRenderItems.push_back(std::move(renderItem));
+
 }
 
 void D3DApp::BuildPSO()

@@ -109,6 +109,10 @@ Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(
     return byteCode;
 }
 
+// Utility function to that creates default buffer and uploads
+// the data specified through the upload buffer.
+//
+// Note: the upload buffer is an output parameter and has to be kept alive.
 Microsoft::WRL::ComPtr<ID3D12Resource> CreateDefaultBuffer(
     ID3D12Device* device,
     ID3D12GraphicsCommandList* cmdList,
@@ -117,27 +121,29 @@ Microsoft::WRL::ComPtr<ID3D12Resource> CreateDefaultBuffer(
     _Out_ Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
 {
     // Resource for output
-    ComPtr<ID3D12Resource> defaultBuffer;
+    ComPtr<ID3D12Resource> defaultBuffer = nullptr;
 
-    // Specify the resource properties - heap and description
+    // Non-custom heaps only require the heap type (default, upload, readback)
     const D3D12_HEAP_PROPERTIES defaultHeap = 
         HeapProperties(D3D12_HEAP_TYPE_DEFAULT);
     const D3D12_HEAP_PROPERTIES uploadHeap =
         HeapProperties(D3D12_HEAP_TYPE_UPLOAD);
-    // Common for both buffers
+
+    // Buffer resource description only requires byte size
     const D3D12_RESOURCE_DESC bufferDesc = BufferDesc(byteSize);
 
-    // Create default buffer with common initial state
+    // Proceed to create GPU resources
+
     ThrowIfFailed(device->CreateCommittedResource(
         &defaultHeap, D3D12_HEAP_FLAG_NONE, &bufferDesc,
         D3D12_RESOURCE_STATE_COMMON,
-        nullptr, IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
-
-    // Create intermediate upload buffer to copy memory
+        nullptr,
+        IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
     ThrowIfFailed(device->CreateCommittedResource(
         &uploadHeap, D3D12_HEAP_FLAG_NONE, &bufferDesc,
         D3D12_RESOURCE_STATE_GENERIC_READ,
-        nullptr, IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
+        nullptr,
+        IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
 
     // Create subresource data
     D3D12_SUBRESOURCE_DATA subResourceData = { };

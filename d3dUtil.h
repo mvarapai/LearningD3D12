@@ -1,3 +1,10 @@
+/*****************************************************************//**
+ * \file   d3dUtil.h
+ * \brief  Contains utility functions
+ * 
+ * \author Mikalai Varapai
+ * \date   October 2023
+ *********************************************************************/
 #pragma once
 
 #include <d3d12.h>
@@ -40,80 +47,6 @@ void Transition(ID3D12Resource* pResource,
     ID3D12GraphicsCommandList* commandList,
     D3D12_RESOURCE_STATES stateBefore,
     D3D12_RESOURCE_STATES stateAfter);
-
-// Defines draw details of a submesh
-struct SubmeshGeometry
-{
-    UINT IndexCount = 0;            // How many indices to draw
-    UINT StartIndexLocation = 0;    // From which to start
-    INT BaseVertexLocation = 0;     // Padding of the indices
-};
-
-// Class defining a mesh which could consist of multiple
-// submeshes that share the same vertex and index buffers.
-// Note: it is up to the user to properly define and upload everything,
-// this class only provides the fields and getter methods.
-struct MeshGeometry
-{
-    // Give mesh a name
-    std::string Name;
-
-    // Generic memory slots to copy raw data
-    Microsoft::WRL::ComPtr<ID3DBlob> VertexBufferCPU = nullptr;
-    Microsoft::WRL::ComPtr<ID3DBlob> IndexBufferCPU = nullptr;
-
-    // GPU resources to be used by the pipeline
-    Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferGPU = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferGPU = nullptr;
-
-    // Intermediate upload heaps
-    Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferUploader = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferUploader = nullptr;
-
-    // Data about the buffers
-    UINT VertexByteStride = 0; // Identify byte size of each vertex object
-    UINT VertexBufferByteSize = 0; // Byte size of the entire VB
-
-    DXGI_FORMAT IndexFormat = DXGI_FORMAT_R16_UINT; // Basically IB stride
-    UINT IndexBufferByteSize = 0;   // Size of the IB
-
-    // Associate each submesh with a name.
-    // Used to store multiple submeshes in one vertex and index buffer,
-    // to decrease overhead in changing the buffers in use.
-    std::unordered_map<std::string, SubmeshGeometry> DrawArgs;
-
-    // Functions to get descriptors to the buffers
-
-    // Get binding of the vertex buffer to the pipeline
-    D3D12_VERTEX_BUFFER_VIEW VertexBufferView()const
-    {
-        D3D12_VERTEX_BUFFER_VIEW vbv = { };
-        vbv.BufferLocation = VertexBufferGPU->GetGPUVirtualAddress();
-        vbv.StrideInBytes = VertexByteStride;
-        vbv.SizeInBytes = VertexBufferByteSize;
-
-        return vbv;
-    }
-
-    // Get binding of the index buffer to the pipeline
-    D3D12_INDEX_BUFFER_VIEW IndexBufferView()const
-    {
-        D3D12_INDEX_BUFFER_VIEW ibv = { };
-        ibv.BufferLocation = IndexBufferGPU->GetGPUVirtualAddress();
-        ibv.Format = IndexFormat;
-        ibv.SizeInBytes = IndexBufferByteSize;
-
-        return ibv;
-    }
-
-    // Free the memory when we have uploaded index and vertex buffers
-    void DisposeUploaders()
-    {
-        // Since they are ComPtr, memory is released implicitly
-        VertexBufferUploader = nullptr;
-        IndexBufferUploader = nullptr;
-    }
-};
 
 // Utility function to define default heap of GPU memory
 const D3D12_HEAP_PROPERTIES HeapProperties(D3D12_HEAP_TYPE type);

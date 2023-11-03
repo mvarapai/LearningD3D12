@@ -18,28 +18,11 @@ using namespace DirectX::PackedVector;
 
 void D3DApp::DrawRenderItems()
 {
-	UINT objCBByteSize = CalcConstantBufferByteSize(sizeof(ObjectConstants));
-
-	ID3D12Resource* objectCB = mCurrFrameResource->ObjectCB->Resource();
-
 	// Iterate through render items
 	for (UINT i = 0; i < mAllRenderItems.size(); i++)
 	{
 		RenderItem* ri = mAllRenderItems[i].get();
-
-		D3D12_VERTEX_BUFFER_VIEW vbv = ri->Geo->VertexBufferView();
-		D3D12_INDEX_BUFFER_VIEW ibv = ri->Geo->IndexBufferView();
-
-		mCommandList->IASetVertexBuffers(0, 1, &vbv);
-		mCommandList->IASetIndexBuffer(&ibv);
-		mCommandList->IASetPrimitiveTopology(ri->PrimitiveType);
-
-		mCommandList->SetGraphicsRootDescriptorTable(1,
-			GetPerObjectCBV(mCurrFrameResourceIndex, i));
-
-		SubmeshGeometry submesh = ri->Geo->DrawArgs[ri->Submesh];
-		mCommandList->DrawIndexedInstanced(submesh.IndexCount, 1, submesh.StartIndexLocation,
-			submesh.BaseVertexLocation, 0);
+		ri->Draw(mCommandList.Get(), GetPerObjectCBV(mCurrFrameResourceIndex, i));
 	}
 }
 
@@ -89,7 +72,7 @@ void D3DApp::Draw()
 	mCommandList->SetGraphicsRootDescriptorTable(0,
 		GetPassCBV(mCurrFrameResourceIndex));
 
-	// Deaw objects
+	// Draw objects
 	DrawRenderItems();
 
 	// When rendered, change state to present
@@ -136,22 +119,7 @@ void D3DApp::UpdateObjectCBs()
 	UploadBuffer<ObjectConstants>* currObjectCB = mCurrFrameResource->ObjectCB.get();
 	for (std::unique_ptr<RenderItem>& renderItem : mAllRenderItems)
 	{
-		// Only update 'dirty' frames - the ones with old data
-		if (renderItem->numFramesDirty > 0)
-		{
-			// Load world matrix from the structure
-			XMMATRIX world = XMLoadFloat4x4(&renderItem->World);
-
-			// Write it to the CB structure
-			ObjectConstants objConstants = { };
-			XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
-
-			// Copy data to current frame's per object CB
-			currObjectCB->CopyData(renderItem->ObjCBIndex, objConstants);
-
-			// One frame updated
-			renderItem->numFramesDirty--;
-		}
+		renderItem->Update(currObjectCB);
 	}
 }
 
@@ -186,6 +154,7 @@ void D3DApp::Update()
 	{
 		HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
 		ThrowIfFailed(mFence->SetEventOnCompletion(mCurrFrameResource->Fence, eventHandle));
+		if (eventHandle == nullptr) return;
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
 	}

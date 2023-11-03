@@ -140,6 +140,7 @@
     <ClCompile Include="d3dUtil.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MathHelper.cpp" />
+    <ClCompile Include="RenderItem.cpp" />
     <ClCompile Include="timer.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
@@ -147,6 +148,7 @@
     <ClInclude Include="d3dinit.h" />
     <ClInclude Include="d3dUtil.h" />
     <ClInclude Include="FrameResource.h" />
+    <ClInclude Include="geometry.h" />
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="RenderItem.h" />
     <ClInclude Include="structures.h" />
