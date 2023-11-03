@@ -53,3 +53,56 @@ RenderItem RenderItem::CreatePaintedCube(MeshGeometry<Vertex>* meshGeometry, UIN
 
 	return renderItem;
 }
+
+RenderItem RenderItem::CreateGrid(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT numRows, float cellLength)
+{
+	RenderItem renderItem = RenderItem();
+	renderItem.mGeometry = meshGeometry;
+	renderItem.mObjCBIndex = objCBIndex;
+	renderItem.mPrimitiveType = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+
+	std::vector<Vertex> vertices;
+	std::vector<uint16_t> indices;
+
+	float offset = 0.5f * (numRows - 1) * cellLength;
+
+	// Specify horizontal lines
+	for (UINT x = 1; x < numRows - 1; x++)
+	{
+		XMFLOAT4 color = XMFLOAT4(Colors::Gray);
+
+		Vertex v1 = { };
+		v1.Pos = XMFLOAT3(x * cellLength - offset, 0, -offset);
+		v1.Color = color;
+
+		Vertex v2 = { };
+		v2.Pos = XMFLOAT3(x * cellLength - offset, 0, (numRows - 1) * cellLength - offset);
+		v2.Color = color;
+
+		indices.push_back(vertices.size());
+		vertices.push_back(v1);
+
+		indices.push_back(vertices.size());
+		vertices.push_back(v2);
+
+		// Vertical columns
+		Vertex v3 = { };
+		v3.Pos = XMFLOAT3(-offset, 0, x * cellLength - offset);
+		v3.Color = color;
+
+		Vertex v4 = { };
+		v4.Pos = XMFLOAT3((numRows - 1) * cellLength - offset, 0, x * cellLength - offset);
+		v4.Color = color;
+
+		indices.push_back(vertices.size());
+		vertices.push_back(v3);
+
+		indices.push_back(vertices.size());
+		vertices.push_back(v4);
+	}
+
+	renderItem.mSubmesh = meshGeometry->AddVertexData(vertices, indices);
+
+	return renderItem;
+}
+

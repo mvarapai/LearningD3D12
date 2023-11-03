@@ -334,7 +334,7 @@ void D3DApp::BuildFrameResources()
 	for (int i = 0; i < gNumFrameResources; i++)
 	{
 		mFrameResources.push_back(
-			std::make_unique<FrameResource>(md3dDevice.Get(), 1, 1));
+			std::make_unique<FrameResource>(md3dDevice.Get(), 1, gNumObjects));
 	}
 }
 
@@ -436,13 +436,17 @@ void D3DApp::BuildBoxGeometry()
 	// Initialize MeshGeometry
 	mMeshGeometry = std::make_unique<MeshGeometry<Vertex>>(md3dDevice.Get(), mCommandList.Get());
 
-	std::unique_ptr<RenderItem> renderItem = std::make_unique<RenderItem>(
+	std::unique_ptr<RenderItem> renderItem1 = std::make_unique<RenderItem>(
 		RenderItem::CreatePaintedCube(mMeshGeometry.get(), 0));
+
+	std::unique_ptr<RenderItem> renderItem2 = std::make_unique<RenderItem>(
+		RenderItem::CreateGrid(mMeshGeometry.get(), 1, 10, 1.0f));
 
 	// Create GPU resources
 	mMeshGeometry->ConstructMeshGeometry();
 
-	mAllRenderItems.push_back(std::move(renderItem));
+	mAllRenderItems.push_back(std::move(renderItem1));
+	mAllRenderItems.push_back(std::move(renderItem2));
 
 }
 

@@ -54,7 +54,7 @@ public:
 	}
 
 	static RenderItem CreatePaintedCube(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex);
-	static RenderItem CreateGrid(UINT numRows, float cellLength);
+	static RenderItem CreateGrid(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT numRows, float cellLength);
 
 private:
 	// World matrix for the shape to indicate its transform
