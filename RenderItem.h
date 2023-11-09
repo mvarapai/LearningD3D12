@@ -23,7 +23,6 @@ class RenderItem
 {
 public:
 	RenderItem() = default;
-	//RenderItem(RenderItem& rhs) = delete;
 	RenderItem& operator=(RenderItem& rhs) = delete;
 
 	void Update(UploadBuffer<ObjectConstants>* constantBuffer)
@@ -56,6 +55,7 @@ public:
 
 	static RenderItem CreatePaintedCube(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex);
 	static RenderItem CreateGrid(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT numRows, float cellLength);
+	static RenderItem CreateTerrain(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT n, UINT m, float width, float depth);
 
 private:
 	// World matrix for the shape to indicate its transform
@@ -72,6 +72,6 @@ private:
 
 	// Primitive topology
 	D3D12_PRIMITIVE_TOPOLOGY mPrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
+public:
 	SubmeshGeometry mSubmesh;
 };

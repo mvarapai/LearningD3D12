@@ -23,6 +23,7 @@
 #include "RenderItem.h"
 #include "structures.h"
 #include "geometry.h"
+#include "d3dcamera.h" 
 
 // Class that initializes and operates DirectX 12
 class D3DApp
@@ -101,6 +102,8 @@ private:
 	static const int									gNumRenderModes = 2;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mPSOs[gNumRenderModes];
 
+	std::unique_ptr<Camera>								mCamera = nullptr;
+
 	// Geometry management
 	std::unique_ptr<MeshGeometry<Vertex>>				mMeshGeometry = nullptr;
 
@@ -130,16 +133,7 @@ private:
 	int	mCurrBackBuffer = 0;
 
 	// Current matrices
-	//DirectX::XMFLOAT4X4 mWorld = MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4 mView = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 mProj = MathHelper::Identity4x4();
-
-	// Parameters of matrices
-	float mTheta = 1.5f * DirectX::XM_PI;
-	float mPhi = DirectX::XM_PIDIV4;
-	float mRadius = 5.0f;
-
-	POINT mLastMousePos = { };
 
 	// Descriptor sizes
 	UINT mRtvDescriptorSize = 0;
@@ -161,7 +155,7 @@ private:
 
 public:
 
-	int gNumObjects = 2;
+	int gNumObjects = 3;
 	static const int gNumFrameResources = 3;
 
 private:
@@ -193,7 +187,7 @@ private:
 	void BuildConstantBuffers();				// Creates per object and pass CBVs
 	void BuildRootSignature();					// Defines the shader input signature
 	void BuildShadersAndInputLayout();			// Compiles shaders and defines input layout
-	void BuildBoxGeometry();					// Builds MeshGeometry of the box and creates RenderItem
+	void BuildGeometry();					// Builds MeshGeometry of the box and creates RenderItem
 	void BuildPSO();							// Configures rendering pipeline
 
 

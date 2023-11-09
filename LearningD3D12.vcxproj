@@ -146,6 +146,7 @@
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="d3dcamera.h" />
     <ClInclude Include="d3dinit.h" />
     <ClInclude Include="d3dUtil.h" />
     <ClInclude Include="FrameResource.h" />

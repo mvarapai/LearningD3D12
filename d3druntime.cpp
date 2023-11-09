@@ -117,22 +117,6 @@ void D3DApp::Draw()
 	mCommandQueue->Signal(mFence.Get(), mCurrentFence);
 }
 
-void D3DApp::UpdateCamera()
-{
-	// Convert spherical to Cartesian coordinates
-	float x = mRadius * sinf(mPhi) * cosf(mTheta);
-	float z = mRadius * sinf(mPhi) * sinf(mTheta);
-	float y = mRadius * cosf(mPhi);
-
-	// Build the view matrix
-	XMVECTOR pos = XMVectorSet(x, y, z, 1.0f);
-	XMVECTOR target = XMVectorZero();
-	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-	XMStoreFloat4x4(&mView, view);
-}
-
 // Stores world matrices to current frame's per object CB
 void D3DApp::UpdateObjectCBs()
 {
@@ -148,7 +132,7 @@ void D3DApp::UpdateObjectCBs()
 
 void D3DApp::UpdatePassCB()
 {
-	XMMATRIX view = XMLoadFloat4x4(&mView);
+	XMMATRIX view = XMLoadFloat4x4(&mCamera->mView);
 	XMMATRIX proj = XMLoadFloat4x4(&mProj);
 
 	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
@@ -163,9 +147,6 @@ void D3DApp::UpdatePassCB()
 
 void D3DApp::Update()
 {
-	// Get view matrix ready for copy to current frame's pass CB
-	UpdateCamera();
-
 	// Write to next frame resource
 	mCurrFrameResourceIndex =
 		(mCurrFrameResourceIndex + 1) % gNumFrameResources;
@@ -184,6 +165,7 @@ void D3DApp::Update()
 
 	// Then, after the frame is processed we can update object and pass CBs,
 	// which write to frame resources
+	mCamera->Update();
 	UpdateObjectCBs();
 	UpdatePassCB();
 }
@@ -191,8 +173,8 @@ void D3DApp::Update()
 void D3DApp::OnMouseDown(WPARAM btnState, int x, int y)
 {
 	// Prepare to move
-	mLastMousePos.x = x;
-	mLastMousePos.y = y;
+	mCamera->mLastMousePos.x = x;
+	mCamera->mLastMousePos.y = y;
 
 	// Set mouse capture on current window
 	SetCapture(D3DWindow::GetWindow()->GetWindowHandle());
@@ -207,24 +189,8 @@ void D3DApp::OnMouseMove(WPARAM btnState, int x, int y)
 {
 	if ((btnState & MK_LBUTTON) != 0)
 	{
-		// Make each pixel correspond to a quarter of a degree
-		float dx = XMConvertToRadians
-		(0.25f * static_cast<float>(x - mLastMousePos.x));
-
-		float dy = XMConvertToRadians
-		(0.25f * static_cast<float>(y - mLastMousePos.y));
-
-		mTheta += dx;
-		mPhi += dy;
-
-		mRadius += dx - dy;
-
-		mRadius = MathHelper::Clamp(mRadius, 3.0f, 15.0f);
+		mCamera->OnMouseMove(x, y);
 	}
-
-	// Update last position
-	mLastMousePos.x = x;
-	mLastMousePos.y = y;
 }
 
 // Passed from default WndProc function
@@ -343,7 +309,9 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_MOUSEMOVE:
 		OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		return 0;
-
+	case WM_KEYDOWN:
+		mCamera->OnKeyDown(wParam);
+		return 0;
 	case WM_KEYUP:
 		if (wParam == VK_ESCAPE)
 		{

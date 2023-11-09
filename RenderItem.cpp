@@ -1,4 +1,5 @@
 #include "RenderItem.h"
+#include "MathHelper.h"
 #include <DirectXColors.h>
 
 using namespace DirectX;
@@ -97,6 +98,84 @@ RenderItem RenderItem::CreateGrid(MeshGeometry<Vertex>* meshGeometry, UINT objCB
 
 		indices.push_back(vertices.size());
 		vertices.push_back(v4);
+	}
+
+	renderItem.mSubmesh = meshGeometry->AddVertexData(vertices, indices);
+
+	return renderItem;
+}
+
+RenderItem RenderItem::CreateTerrain(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT n, UINT m, float width, float depth)
+{
+	RenderItem renderItem = RenderItem();
+	renderItem.mGeometry = meshGeometry;
+	renderItem.mObjCBIndex = objCBIndex;
+	
+	std::vector<Vertex> vertices;
+	std::vector<uint16_t> indices;
+
+	float dx = width / static_cast<float>(n - 1);
+	float dz = depth / static_cast<float>(m - 1);
+
+	float zeroX = -width / 2;
+	float zeroZ = depth / 2;
+
+	// Generate vertices
+	for (int i = 0; i < m; i++)
+	{
+		for (int j = 0; j < n; j++)
+		{
+			float x = zeroX + j * dx;
+			float z = zeroZ - i * dz;
+			float height = MathHelper::TerrainNoise(x, z);
+
+			XMFLOAT4 Color = { };
+
+			if (height < -10.0f)
+			{
+				// Sandy beach color.
+				Color = XMFLOAT4(1.0f, 0.96f, 0.62f, 1.0f);
+			}
+			else if (height < 5.0f)
+			{
+				// Light yellow-green.
+				Color = XMFLOAT4(0.48f, 0.77f, 0.46f, 1.0f);
+			}
+			else if (height < 12.0f)
+			{
+				// Dark yellow-green.
+				Color = XMFLOAT4(0.1f, 0.48f, 0.19f, 1.0f);
+			}
+			else if (height < 20.0f)
+			{
+				// Dark brown.
+				Color = XMFLOAT4(0.45f, 0.39f, 0.34f, 1.0f);
+			}
+			else
+			{
+				// White snow.
+				Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+			}
+
+			vertices.push_back(Vertex{
+				{ x, height, z }, Color });
+		}
+	}
+
+	// Generate indices
+	for (int i = 0; i < m - 1; i++)
+	{
+		for (int j = 0; j < n - 1; j++)
+		{
+			// Generate indices for quad down and to the right
+			indices.push_back(	j			+	i		* n);
+			indices.push_back(	(j + 1)		+	i		* n);
+			indices.push_back(	j			+	(i + 1) * n);
+
+			indices.push_back(	(j + 1)		+	i		* n);
+			indices.push_back(	(j + 1)		+ (i + 1)	* n);
+			indices.push_back(	j			+ (i + 1)	* n);
+		}
 	}
 
 	renderItem.mSubmesh = meshGeometry->AddVertexData(vertices, indices);

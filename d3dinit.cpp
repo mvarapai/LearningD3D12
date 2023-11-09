@@ -115,7 +115,7 @@ void D3DApp::InitD3D()
 	BuildConstantBuffers();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
-	BuildBoxGeometry();
+	BuildGeometry();
 	BuildPSO();
 
 	// Execute initialization commands
@@ -336,9 +336,10 @@ void D3DApp::BuildFrameResources()
 		mFrameResources.push_back(
 			std::make_unique<FrameResource>(md3dDevice.Get(), 1, gNumObjects));
 	}
+	mCamera = std::make_unique<Camera>(XMVectorSet(5.0f, 2.0f, 5.0f, 1.0f), XM_PI * 7 / 4, -0.2f, mTimer);
 }
 
-void D3DApp::BuildBoxGeometry()
+void D3DApp::BuildGeometry()
 {
 	// Initialize MeshGeometry
 	mMeshGeometry = std::make_unique<MeshGeometry<Vertex>>(md3dDevice.Get(), mCommandList.Get());
@@ -349,13 +350,18 @@ void D3DApp::BuildBoxGeometry()
 	std::unique_ptr<RenderItem> renderItem2 = std::make_unique<RenderItem>(
 		RenderItem::CreateGrid(mMeshGeometry.get(), 1, 10, 1.0f));
 
+	std::unique_ptr<RenderItem> terrain = std::make_unique<RenderItem>(
+		RenderItem::CreateTerrain(mMeshGeometry.get(), 2, 100, 100, 100.0f, 100.0f));
+
 	// Create GPU resources
 	mMeshGeometry->ConstructMeshGeometry();
 
+	// Initialize render item arrays
 	mAllRenderItems.push_back(std::vector<std::unique_ptr<RenderItem>>());
 	mAllRenderItems.push_back(std::vector<std::unique_ptr<RenderItem>>());
 
 	mAllRenderItems[0].push_back(std::move(renderItem1));
+	mAllRenderItems[0].push_back(std::move(terrain));
 	mAllRenderItems[1].push_back(std::move(renderItem2));
 
 }
