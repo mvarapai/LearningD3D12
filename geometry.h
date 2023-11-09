@@ -23,6 +23,7 @@ struct SubmeshGeometry
 
 // Class defining a mesh which could consist of multiple
 // submeshes that share the same vertex and index buffers.
+// Can specify user-defined vertex structure
 template<typename T>
 class MeshGeometry
 {

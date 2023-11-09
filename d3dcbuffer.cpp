@@ -25,8 +25,8 @@ void D3DApp::CreateConstantBufferHeap()
 // - next are per object CBVs, the CPU handle of each can be accessed with
 // the following offset: 
 //	= gNumFrameResources		* mCbvSrvDescriptorSize
-//  + frameResourceIndex	* (mCbvSrvDescriptorSize * gNumObjects)
-//  + objectIndex			* mCbvSrvDescriptorSize
+//  + frameResourceIndex		* (mCbvSrvDescriptorSize * gNumObjects)
+//  + objectIndex				* mCbvSrvDescriptorSize
 void D3DApp::BuildConstantBuffers()
 {
 	// Query constant buffer sizes

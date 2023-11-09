@@ -18,11 +18,29 @@ using namespace DirectX::PackedVector;
 
 void D3DApp::DrawRenderItems()
 {
-	// Iterate through render items
-	for (UINT i = 0; i < mAllRenderItems.size(); i++)
+	// We are using only one MeshGeometry
+	const D3D12_VERTEX_BUFFER_VIEW vbv = mMeshGeometry->VertexBufferView();
+	const D3D12_INDEX_BUFFER_VIEW ibv = mMeshGeometry->IndexBufferView();
+
+	mCommandList->IASetVertexBuffers(0, 1, &vbv);
+	mCommandList->IASetIndexBuffer(&ibv);
+
+
+	UINT objIndex = 0;
+	// Iterate through PSOs
+	for (UINT psoIndex = 0; psoIndex < gNumRenderModes; psoIndex++)
 	{
-		RenderItem* ri = mAllRenderItems[i].get();
-		ri->Draw(mCommandList.Get(), GetPerObjectCBV(mCurrFrameResourceIndex, i));
+		// The first PSO is set when command list is reset
+		if (psoIndex > 0)
+		{
+			mCommandList->SetPipelineState(mPSOs[psoIndex].Get());
+		}
+		// Iterate through render items
+		for (auto & ri : mAllRenderItems[psoIndex])
+		{
+			ri->Draw(mCommandList.Get(),
+				GetPerObjectCBV(mCurrFrameResourceIndex, ri->GetCBIndex()));
+		}
 	}
 }
 
@@ -33,7 +51,9 @@ void D3DApp::Draw()
 
 	// Reuse the memory since the frame is processed
 	ThrowIfFailed(currCmdAlloc->Reset());
-	ThrowIfFailed(mCommandList->Reset(currCmdAlloc.Get(), mPSO.Get()));
+
+	// Use the default PSO
+	ThrowIfFailed(mCommandList->Reset(currCmdAlloc.Get(), mPSOs[0].Get()));
 
 
 	// To know what to render
@@ -117,9 +137,12 @@ void D3DApp::UpdateCamera()
 void D3DApp::UpdateObjectCBs()
 {
 	UploadBuffer<ObjectConstants>* currObjectCB = mCurrFrameResource->ObjectCB.get();
-	for (std::unique_ptr<RenderItem>& renderItem : mAllRenderItems)
+	for (int psoIndex = 0; psoIndex < gNumRenderModes; psoIndex++)
 	{
-		renderItem->Update(currObjectCB);
+		for (std::unique_ptr<RenderItem>& renderItem : mAllRenderItems[psoIndex])
+		{
+			renderItem->Update(currObjectCB);
+		}
 	}
 }
 

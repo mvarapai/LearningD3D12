@@ -85,7 +85,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		mDsvHeap = nullptr;
 
 	// Instances of GPU resources
-	static const int swapChainBufferCount = 2;
+	static const int									swapChainBufferCount = 2;
 	Microsoft::WRL::ComPtr<IDXGISwapChain>				mSwapChain = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mDepthStencilBuffer = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mSwapChainBuffer[swapChainBufferCount];
@@ -97,12 +97,16 @@ private:
 	Microsoft::WRL::ComPtr<ID3DBlob>					mvsByteCode = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob>					mpsByteCode = nullptr;
 
-	// Pipeline configuration
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mPSO = nullptr;
+	// An array of pipeline states
+	static const int									gNumRenderModes = 2;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mPSOs[gNumRenderModes];
 
 	// Geometry management
 	std::unique_ptr<MeshGeometry<Vertex>>				mMeshGeometry = nullptr;
-	std::vector<std::unique_ptr<RenderItem>>			mAllRenderItems;
+
+	// Sort RenderItems by the PSO used to render them
+	std::vector<
+		std::vector<std::unique_ptr<RenderItem>>>		mAllRenderItems;
 
 	// Viewport and scissor rect properties
 	D3D12_VIEWPORT mViewport = { };
@@ -126,7 +130,7 @@ private:
 	int	mCurrBackBuffer = 0;
 
 	// Current matrices
-	DirectX::XMFLOAT4X4 mWorld = MathHelper::Identity4x4();
+	//DirectX::XMFLOAT4X4 mWorld = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 mView = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 mProj = MathHelper::Identity4x4();
 

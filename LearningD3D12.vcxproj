@@ -136,6 +136,7 @@
   <ItemGroup>
     <ClCompile Include="d3dcbuffer.cpp" />
     <ClCompile Include="d3dinit.cpp" />
+    <ClCompile Include="d3dpipeline.cpp" />
     <ClCompile Include="d3druntime.cpp" />
     <ClCompile Include="d3dUtil.cpp" />
     <ClCompile Include="main.cpp" />

@@ -71,11 +71,11 @@ RenderItem RenderItem::CreateGrid(MeshGeometry<Vertex>* meshGeometry, UINT objCB
 	{
 		XMFLOAT4 color = XMFLOAT4(Colors::Gray);
 
-		Vertex v1 = { };
+		Vertex v1 = { }, v2 = { }, v3 = { }, v4 = { };
+
 		v1.Pos = XMFLOAT3(x * cellLength - offset, 0, -offset);
 		v1.Color = color;
 
-		Vertex v2 = { };
 		v2.Pos = XMFLOAT3(x * cellLength - offset, 0, (numRows - 1) * cellLength - offset);
 		v2.Color = color;
 
@@ -86,11 +86,9 @@ RenderItem RenderItem::CreateGrid(MeshGeometry<Vertex>* meshGeometry, UINT objCB
 		vertices.push_back(v2);
 
 		// Vertical columns
-		Vertex v3 = { };
 		v3.Pos = XMFLOAT3(-offset, 0, x * cellLength - offset);
 		v3.Color = color;
 
-		Vertex v4 = { };
 		v4.Pos = XMFLOAT3((numRows - 1) * cellLength - offset, 0, x * cellLength - offset);
 		v4.Color = color;
 

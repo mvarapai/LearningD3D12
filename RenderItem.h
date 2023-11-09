@@ -23,9 +23,12 @@ class RenderItem
 {
 public:
 	RenderItem() = default;
+	//RenderItem(RenderItem& rhs) = delete;
+	RenderItem& operator=(RenderItem& rhs) = delete;
 
 	void Update(UploadBuffer<ObjectConstants>* constantBuffer)
 	{
+		// Update 'dirty' frames
 		if (mNumFramesDirty > 0)
 		{
 			DirectX::XMMATRIX WorldMatrix = DirectX::XMLoadFloat4x4(&mWorld);
@@ -40,18 +43,16 @@ public:
 
 	void Draw(ID3D12GraphicsCommandList* pCmdList, D3D12_GPU_DESCRIPTOR_HANDLE objectCBV)
 	{
-		const D3D12_VERTEX_BUFFER_VIEW vbv = mGeometry->VertexBufferView();
-		const D3D12_INDEX_BUFFER_VIEW ibv = mGeometry->IndexBufferView();
-
-		pCmdList->IASetVertexBuffers(0, 1, &vbv);
-		pCmdList->IASetIndexBuffer(&ibv);
 		pCmdList->IASetPrimitiveTopology(mPrimitiveType);
 
+		// Set the CB descriptor to the 1 slot of descriptor table
 		pCmdList->SetGraphicsRootDescriptorTable(1, objectCBV);
 
 		pCmdList->DrawIndexedInstanced(mSubmesh.IndexCount, 1,
 			mSubmesh.StartIndexLocation, mSubmesh.BaseVertexLocation, 0);
 	}
+
+	int GetCBIndex() { return mObjCBIndex; }
 
 	static RenderItem CreatePaintedCube(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex);
 	static RenderItem CreateGrid(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT numRows, float cellLength);
