@@ -28,6 +28,8 @@ public:
 
 		PassCB = std::make_unique<UploadBuffer<PassConstants>>(pDevice, passCount, true);
 		ObjectCB = std::make_unique<UploadBuffer<ObjectConstants>>(pDevice, objCount, true);
+
+		//DynamicVB = std::make_unique<UploadBuffer<Vertex>>(pDevice, waveVertexCounn);
 	}
 
 	~FrameResource() { }
@@ -40,8 +42,10 @@ public:
 
 	// Each frame has its own associated constant buffer resources, used
 	// to render the scene.
-	std::unique_ptr<UploadBuffer<PassConstants>> PassCB = nullptr;
-	std::unique_ptr<UploadBuffer<ObjectConstants>> ObjectCB = nullptr;
+	std::unique_ptr<UploadBuffer<PassConstants>>	PassCB = nullptr;
+	std::unique_ptr<UploadBuffer<ObjectConstants>>	ObjectCB = nullptr;
+
+	//std::unique_ptr<UploadBuffer<Vertex>>			DynamicVB = nullptr;
 
 	// Fence value to mark commands up to this fence point. This lets us
 	// check if the resource is still in use by the GPU.

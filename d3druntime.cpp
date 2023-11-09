@@ -38,8 +38,11 @@ void D3DApp::DrawRenderItems()
 		// Iterate through render items
 		for (auto & ri : mAllRenderItems[psoIndex])
 		{
-			ri->Draw(mCommandList.Get(),
-				GetPerObjectCBV(mCurrFrameResourceIndex, ri->GetCBIndex()));
+			D3D12_GPU_VIRTUAL_ADDRESS address = mCurrFrameResource->ObjectCB->Resource()->GetGPUVirtualAddress();
+
+			address += static_cast<UINT64>(ri->GetCBIndex() * CalcConstantBufferByteSize(sizeof(ObjectConstants)));
+
+			ri->Draw(mCommandList.Get(), address);
 		}
 	}
 }
@@ -82,15 +85,14 @@ void D3DApp::Draw()
 
 	// Code to draw the cube
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvHeap.Get() };
-	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps),
-		descriptorHeaps);
+	//ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvHeap.Get() };
+	//mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps),
+	//	descriptorHeaps);
 
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 	
 	// Set pass constants
-	mCommandList->SetGraphicsRootDescriptorTable(0,
-		GetPassCBV(mCurrFrameResourceIndex));
+	mCommandList->SetGraphicsRootConstantBufferView(0, mCurrFrameResource->PassCB->Resource()->GetGPUVirtualAddress());
 
 	// Draw objects
 	DrawRenderItems();

@@ -19,41 +19,22 @@ void D3DApp::BuildRootSignature()
 	// Root parameter can be a table, root descriptor or root constants.
 	D3D12_ROOT_PARAMETER slotRootParameters[2] = { };
 
-	// Initialize first parameter root descriptor
-	D3D12_DESCRIPTOR_RANGE passDescriptorTable = { };
-	passDescriptorTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	passDescriptorTable.NumDescriptors = 1;
-	passDescriptorTable.BaseShaderRegister = 0;
-	passDescriptorTable.RegisterSpace = 0;
-	// Since we have only one range in a table, there is no offset
-	passDescriptorTable.OffsetInDescriptorsFromTableStart = 0;
+	// Pass CBV will be bound to b0
+	D3D12_ROOT_DESCRIPTOR perPassCBV = { };
+	perPassCBV.RegisterSpace = 0;
+	perPassCBV.ShaderRegister = 0;
 
-	// Create a single range with gNumObjects descriptors
-	D3D12_DESCRIPTOR_RANGE perObjTable = { };
-	perObjTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	perObjTable.NumDescriptors = 1;
-	perObjTable.BaseShaderRegister = 1;
-	perObjTable.RegisterSpace = 0;
-	// Since we have only one range in a table, there is no offset
-	perObjTable.OffsetInDescriptorsFromTableStart = 0;
+	D3D12_ROOT_DESCRIPTOR perObjectCBV = { };
+	perObjectCBV.RegisterSpace = 0;
+	perObjectCBV.ShaderRegister = 1;
 
-	// Configure root parameter
+	slotRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	slotRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-	// Specify that the parameter is a descriptor table
-	slotRootParameters[0].ParameterType
-		= D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	// Supply ranges of the descriptor table
-	slotRootParameters[0].DescriptorTable.pDescriptorRanges = &passDescriptorTable;
-	slotRootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
+	slotRootParameters[0].Descriptor = perPassCBV;
 
-	// Configure root parameter
+	slotRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	slotRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-	// Specify that the parameter is a descriptor table
-	slotRootParameters[1].ParameterType
-		= D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	// Supply ranges of the descriptor table
-	slotRootParameters[1].DescriptorTable.pDescriptorRanges = &perObjTable;
-	slotRootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
+	slotRootParameters[1].Descriptor = perObjectCBV;
 
 	// Create root signature description
 	D3D12_ROOT_SIGNATURE_DESC rootDesc = { };

@@ -40,12 +40,12 @@ public:
 		}
 	}
 
-	void Draw(ID3D12GraphicsCommandList* pCmdList, D3D12_GPU_DESCRIPTOR_HANDLE objectCBV)
+	void Draw(ID3D12GraphicsCommandList* pCmdList, D3D12_GPU_VIRTUAL_ADDRESS objectCBV)
 	{
 		pCmdList->IASetPrimitiveTopology(mPrimitiveType);
 
 		// Set the CB descriptor to the 1 slot of descriptor table
-		pCmdList->SetGraphicsRootDescriptorTable(1, objectCBV);
+		pCmdList->SetGraphicsRootConstantBufferView(1, objectCBV);
 
 		pCmdList->DrawIndexedInstanced(mSubmesh.IndexCount, 1,
 			mSubmesh.StartIndexLocation, mSubmesh.BaseVertexLocation, 0);
