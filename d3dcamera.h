@@ -50,9 +50,10 @@ public:
 	POINT mLastMousePos = { };
 
 	float Sensibility = 5.0f;
+
+	DirectX::XMFLOAT4 mPosition = { };
 private:
 	// Private XMMatrixLookToLH parameters
-	DirectX::XMFLOAT4 mPosition = { };
 	DirectX::XMFLOAT4 mDirection = { };
 	DirectX::XMFLOAT4 mUp = { };
 

@@ -40,12 +40,13 @@ public:
 		}
 	}
 
-	void Draw(ID3D12GraphicsCommandList* pCmdList, D3D12_GPU_VIRTUAL_ADDRESS objectCBV)
+	void Draw(ID3D12GraphicsCommandList* pCmdList, D3D12_GPU_VIRTUAL_ADDRESS objectCBV, D3D12_GPU_VIRTUAL_ADDRESS materialCBV)
 	{
 		pCmdList->IASetPrimitiveTopology(mPrimitiveType);
 
 		// Set the CB descriptor to the 1 slot of descriptor table
 		pCmdList->SetGraphicsRootConstantBufferView(1, objectCBV);
+		pCmdList->SetGraphicsRootConstantBufferView(2, materialCBV);
 
 		pCmdList->DrawIndexedInstanced(mSubmesh.IndexCount, 1,
 			mSubmesh.StartIndexLocation, mSubmesh.BaseVertexLocation, 0);
@@ -53,9 +54,11 @@ public:
 
 	int GetCBIndex() { return mObjCBIndex; }
 
-	static RenderItem CreatePaintedCube(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex);
-	static RenderItem CreateGrid(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT numRows, float cellLength);
-	static RenderItem CreateTerrain(MeshGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT n, UINT m, float width, float depth);
+	int GetMaterialIndex() { return mMaterialIndex; }
+
+	static RenderItem CreatePaintedCube(StaticGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT matIndex);
+	static RenderItem CreateGrid(StaticGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT matIndex, UINT numRows, float cellLength);
+	static RenderItem CreateTerrain(StaticGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT matIndex, UINT n, UINT m, float width, float depth);
 
 private:
 	// World matrix for the shape to indicate its transform
@@ -67,8 +70,11 @@ private:
 	// Index of the per object CB in the heap
 	UINT mObjCBIndex = -1;
 
-	// Associated MeshGeometry
-	MeshGeometry<Vertex>* mGeometry = nullptr;
+	// Material of the render item
+	int mMaterialIndex = -1;
+
+	// Associated StaticGeometry
+	StaticGeometry<Vertex>* mGeometry = nullptr;
 
 	// Primitive topology
 	D3D12_PRIMITIVE_TOPOLOGY mPrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

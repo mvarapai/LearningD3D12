@@ -115,6 +115,7 @@ void D3DApp::InitD3D()
 	BuildConstantBuffers();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
+	BuildMaterials();
 	BuildGeometry();
 	BuildPSO();
 
@@ -334,27 +335,48 @@ void D3DApp::BuildFrameResources()
 	for (int i = 0; i < gNumFrameResources; i++)
 	{
 		mFrameResources.push_back(
-			std::make_unique<FrameResource>(md3dDevice.Get(), 1, gNumObjects));
+			std::make_unique<FrameResource>(md3dDevice.Get(), 1, gNumObjects, gNumMaterials));
 	}
 	mCamera = std::make_unique<Camera>(XMVectorSet(5.0f, 2.0f, 5.0f, 1.0f), XM_PI * 7 / 4, -0.2f, mTimer);
 }
 
+void D3DApp::BuildMaterials()
+{
+	auto grass = std::make_unique<Material>();
+	grass->Name = "grass";
+	grass->CBIndex = 0;
+	grass->DiffuseAlbedo = XMFLOAT4(0.0f, 0.6f, 0.0f, 1.0f);
+	grass->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+	grass->Roughness = 0.125f;
+	// This is not a good water material definition, but we do not have
+	// all the rendering tools we need (transparency, environment
+	// reflection), so we fake it for now.
+	auto water = std::make_unique<Material>();
+	water->Name = "water";
+	water->CBIndex = 1;
+	water->DiffuseAlbedo = XMFLOAT4(0.0f, 0.2f, 0.6f, 1.0f);
+	water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
+	water->Roughness = 0.0f;
+	mMaterials["grass"] = std::move(grass);
+	mMaterials["water"] = std::move(water);
+}
+
 void D3DApp::BuildGeometry()
 {
-	// Initialize MeshGeometry
-	mMeshGeometry = std::make_unique<MeshGeometry<Vertex>>(md3dDevice.Get(), mCommandList.Get());
+	// Initialize StaticGeometry
+	mMeshGeometry = std::make_unique<StaticGeometry<Vertex>>(md3dDevice.Get(), mCommandList.Get());
 
 	std::unique_ptr<RenderItem> renderItem1 = std::make_unique<RenderItem>(
-		RenderItem::CreatePaintedCube(mMeshGeometry.get(), 0));
+		RenderItem::CreatePaintedCube(mMeshGeometry.get(), 0, mMaterials["grass"]->CBIndex));
 
 	std::unique_ptr<RenderItem> renderItem2 = std::make_unique<RenderItem>(
-		RenderItem::CreateGrid(mMeshGeometry.get(), 1, 10, 1.0f));
+		RenderItem::CreateGrid(mMeshGeometry.get(), 1, mMaterials["grass"]->CBIndex, 10, 1.0f));
 
 	std::unique_ptr<RenderItem> terrain = std::make_unique<RenderItem>(
-		RenderItem::CreateTerrain(mMeshGeometry.get(), 2, 100, 100, 100.0f, 100.0f));
+		RenderItem::CreateTerrain(mMeshGeometry.get(), 2, mMaterials["grass"]->CBIndex, 100, 100, 100.0f, 100.0f));
 
 	// Create GPU resources
-	mMeshGeometry->ConstructMeshGeometry();
+	mMeshGeometry->ConstructGeometry();
 
 	// Initialize render item arrays
 	mAllRenderItems.push_back(std::vector<std::unique_ptr<RenderItem>>());

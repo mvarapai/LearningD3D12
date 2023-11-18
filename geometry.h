@@ -2,16 +2,38 @@
  * \file   geometry.h
  * \brief  Contains geometry utility methods.
  * 
- * \author 20231063
+ * \author Mikalai Varapai
  * \date   October 2023
  *********************************************************************/
 #pragma once
 
 #include <vector>
-#include <d3d12.h>
 
 #include "d3dUtil.h"
 #include "structures.h"
+
+ /**
+  * Structure that defines material property.
+  * Can be changed during runtime and is a frame resource,
+  * therefore the number of 'dirty' frames is tracked.
+  */
+struct Material
+{
+    std::string Name = "null";
+
+    int CBIndex = -1;
+    int SRVHeapIndex = -1;
+
+    int NumFramesDirty = 3;
+
+    DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+    DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
+
+    // Roughness in normalized range
+    float Roughness = 0.25f;
+
+    DirectX::XMFLOAT4X4 MaterialTransform = MathHelper::Identity4x4();
+};
 
  // Defines draw details of a submesh
 struct SubmeshGeometry
@@ -25,7 +47,7 @@ struct SubmeshGeometry
 // submeshes that share the same vertex and index buffers.
 // Can specify user-defined vertex structure
 template<typename T>
-class MeshGeometry
+class StaticGeometry
 {
 private:
     // GPU resources to be used by the pipeline
@@ -53,18 +75,18 @@ private:
     ID3D12GraphicsCommandList* mpCmdList = nullptr;
 
 public:
-    MeshGeometry(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCmdList)
+    StaticGeometry(ID3D12Device* pDevice, ID3D12GraphicsCommandList* pCmdList)
     {
         mVertexByteStride = sizeof(T);
         mpd3dDevice = pDevice;
         mpCmdList = pCmdList;
     }
 
-    void ConstructMeshGeometry()
+    void ConstructGeometry()
     {
         // Set the remaining fields for VB and IB descriptors
-        mVertexBufferByteSize = mRawVertexData.size() * mVertexByteStride;
-        mIndexBufferByteSize = mRawIndexData.size() * sizeof(uint16_t);
+        mVertexBufferByteSize = static_cast<UINT>(mRawVertexData.size()) * mVertexByteStride;
+        mIndexBufferByteSize = static_cast<UINT>(mRawIndexData.size()) * sizeof(uint16_t);
 
         // Create default buffers
         mVertexBufferGPU = CreateDefaultBuffer(
@@ -80,9 +102,9 @@ public:
     SubmeshGeometry AddVertexData(std::vector<T> vertices, std::vector<uint16_t> indices)
     {
         SubmeshGeometry submesh = { };
-        submesh.BaseVertexLocation = mRawVertexData.size();
-        submesh.StartIndexLocation = mRawIndexData.size();
-        submesh.IndexCount = indices.size();
+        submesh.BaseVertexLocation = static_cast<INT>(mRawVertexData.size());
+        submesh.StartIndexLocation = static_cast<UINT>(mRawIndexData.size());
+        submesh.IndexCount = static_cast<UINT>(indices.size());
 
         // Merge the vectors
         mRawVertexData.insert(std::end(mRawVertexData),

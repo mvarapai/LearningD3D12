@@ -3,7 +3,7 @@
  * \brief  Main header file, contains all variables for operating D3D.
  * 
  * \author Mikalai Varapai
- * \date   October 2023
+ * \date   September 2023
  *********************************************************************/
 
 #pragma once
@@ -105,11 +105,14 @@ private:
 	std::unique_ptr<Camera>								mCamera = nullptr;
 
 	// Geometry management
-	std::unique_ptr<MeshGeometry<Vertex>>				mMeshGeometry = nullptr;
+	std::unique_ptr<StaticGeometry<Vertex>>				mMeshGeometry = nullptr;
 
 	// Sort RenderItems by the PSO used to render them
-	std::vector<
-		std::vector<std::unique_ptr<RenderItem>>>		mAllRenderItems;
+	std::vector<std::vector<
+		std::unique_ptr<RenderItem>>>					mAllRenderItems;
+
+	std::unordered_map<std::string, 
+		std::unique_ptr<Material>>						mMaterials;
 
 	// Viewport and scissor rect properties
 	D3D12_VIEWPORT mViewport = { };
@@ -157,6 +160,7 @@ public:
 
 	int gNumObjects = 3;
 	static const int gNumFrameResources = 3;
+	int gNumMaterials = 2;
 
 private:
 
@@ -187,7 +191,8 @@ private:
 	void BuildConstantBuffers();				// Creates per object and pass CBVs
 	void BuildRootSignature();					// Defines the shader input signature
 	void BuildShadersAndInputLayout();			// Compiles shaders and defines input layout
-	void BuildGeometry();					// Builds MeshGeometry of the box and creates RenderItem
+	void BuildMaterials();						// Build materials to use in rendering
+	void BuildGeometry();						// Builds StaticGeometry of the box and creates RenderItem
 	void BuildPSO();							// Configures rendering pipeline
 
 
@@ -230,6 +235,7 @@ private:
 	void UpdateCamera();						// Update view matrix
 	void UpdatePassCB();						// Update and store in CB pass constants
 	void UpdateObjectCBs();						// Update and store in CB object's world matrix
+	void UpdateMaterialCB();					// Update material CB
 
 	void FlushCommandQueue();					// Used to wait till GPU finishes execution
 	void OnResize();							// Called when user finishes resizing

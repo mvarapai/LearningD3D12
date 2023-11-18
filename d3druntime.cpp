@@ -18,15 +18,13 @@ using namespace DirectX::PackedVector;
 
 void D3DApp::DrawRenderItems()
 {
-	// We are using only one MeshGeometry
+	// We are using only one StaticGeometry
 	const D3D12_VERTEX_BUFFER_VIEW vbv = mMeshGeometry->VertexBufferView();
 	const D3D12_INDEX_BUFFER_VIEW ibv = mMeshGeometry->IndexBufferView();
 
 	mCommandList->IASetVertexBuffers(0, 1, &vbv);
 	mCommandList->IASetIndexBuffer(&ibv);
 
-
-	UINT objIndex = 0;
 	// Iterate through PSOs
 	for (UINT psoIndex = 0; psoIndex < gNumRenderModes; psoIndex++)
 	{
@@ -38,11 +36,13 @@ void D3DApp::DrawRenderItems()
 		// Iterate through render items
 		for (auto & ri : mAllRenderItems[psoIndex])
 		{
-			D3D12_GPU_VIRTUAL_ADDRESS address = mCurrFrameResource->ObjectCB->Resource()->GetGPUVirtualAddress();
+			D3D12_GPU_VIRTUAL_ADDRESS objectCBV = mCurrFrameResource->ObjectCB->Resource()->GetGPUVirtualAddress();
+			objectCBV += static_cast<UINT64>(ri->GetCBIndex() * CalcConstantBufferByteSize(sizeof(ObjectConstants)));
 
-			address += static_cast<UINT64>(ri->GetCBIndex() * CalcConstantBufferByteSize(sizeof(ObjectConstants)));
+			D3D12_GPU_VIRTUAL_ADDRESS materialCBV = mCurrFrameResource->MaterialCB->Resource()->GetGPUVirtualAddress();
+			materialCBV += static_cast<UINT64>(ri->GetMaterialIndex() * CalcConstantBufferByteSize(sizeof(MaterialConstants)));
 
-			ri->Draw(mCommandList.Get(), address);
+			ri->Draw(mCommandList.Get(), objectCBV, materialCBV);
 		}
 	}
 }
@@ -139,12 +139,69 @@ void D3DApp::UpdatePassCB()
 
 	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
 
+	XMVECTOR viewDet = XMMatrixDeterminant(view);
+	XMMATRIX invView = XMMatrixInverse(&viewDet, view);
+
+	XMVECTOR projDet = XMMatrixDeterminant(proj);
+	XMMATRIX invProj = XMMatrixInverse(&projDet, proj);
+
+	XMVECTOR viewProjDet = XMMatrixDeterminant(viewProj);
+	XMMATRIX invViewProj = XMMatrixInverse(&viewProjDet, viewProj);
+
+
 	XMStoreFloat4x4(&mPassCB.View, XMMatrixTranspose(view));
 	XMStoreFloat4x4(&mPassCB.Proj, XMMatrixTranspose(proj));
 	XMStoreFloat4x4(&mPassCB.ViewProj, XMMatrixTranspose(viewProj));
+	XMStoreFloat4x4(&mPassCB.InvView, XMMatrixTranspose(invView));
+	XMStoreFloat4x4(&mPassCB.InvProj, XMMatrixTranspose(invProj));
+	XMStoreFloat4x4(&mPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
+
+	XMStoreFloat3(&mPassCB.EyePosW, XMLoadFloat4(&mCamera->mPosition));
+
+	mPassCB.NearZ = 1.0f;
+	mPassCB.FarZ = 1000.0f;
+	mPassCB.TotalTime = mTimer->TotalTime();
+	mPassCB.DeltaTime = mTimer->DeltaTime();
+
+	mPassCB.AmbientLight = { 0.1f, 0.1f, 0.1f, 1.0f };
+
+	Light point = { };
+	point.FalloffEnd = 50.0f;
+	point.FalloffStart = 0.1f;
+	point.Position = { 0.0f, 0.0f, 0.0f };
+	point.Strength = { 1.0f, 1.0f, 1.0f };
+
+	Light dir = { };
+	dir.Direction = { 0.0f, -1.0f, 0.0f };
+	dir.Strength = { 20.0f, 20.0f, 20.0f };
+
+	//mPassCB.Lights[1] = point;
+	mPassCB.Lights[0] = dir;
 
 	UploadBuffer<PassConstants>* currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mPassCB);
+}
+
+void D3DApp::UpdateMaterialCB()
+{
+	UploadBuffer<MaterialConstants>* currMaterialCB = mCurrFrameResource->MaterialCB.get();
+	for (auto& e : mMaterials)
+	{
+		Material* material = e.second.get();
+		if (material->NumFramesDirty > 0)
+		{
+			// Update current material
+
+			MaterialConstants matconst = { };
+			matconst.DiffuseAlbedo = material->DiffuseAlbedo;
+			matconst.FresnelR0 = material->FresnelR0;
+			matconst.Roughness = material->Roughness;
+
+			currMaterialCB->CopyData(material->CBIndex, matconst);
+
+			material->NumFramesDirty--;
+		}
+	}
 }
 
 void D3DApp::Update()
@@ -170,6 +227,7 @@ void D3DApp::Update()
 	mCamera->Update();
 	UpdateObjectCBs();
 	UpdatePassCB();
+	UpdateMaterialCB();
 }
 
 void D3DApp::OnMouseDown(WPARAM btnState, int x, int y)

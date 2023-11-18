@@ -17,7 +17,7 @@ using Microsoft::WRL::ComPtr;
 void D3DApp::BuildRootSignature()
 {
 	// Root parameter can be a table, root descriptor or root constants.
-	D3D12_ROOT_PARAMETER slotRootParameters[2] = { };
+	D3D12_ROOT_PARAMETER slotRootParameters[3] = { };
 
 	// Pass CBV will be bound to b0
 	D3D12_ROOT_DESCRIPTOR perPassCBV = { };
@@ -28,6 +28,10 @@ void D3DApp::BuildRootSignature()
 	perObjectCBV.RegisterSpace = 0;
 	perObjectCBV.ShaderRegister = 1;
 
+	D3D12_ROOT_DESCRIPTOR materialCBV = { };
+	materialCBV.RegisterSpace = 0;
+	materialCBV.ShaderRegister = 2;
+
 	slotRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	slotRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	slotRootParameters[0].Descriptor = perPassCBV;
@@ -35,6 +39,10 @@ void D3DApp::BuildRootSignature()
 	slotRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	slotRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	slotRootParameters[1].Descriptor = perObjectCBV;
+
+	slotRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	slotRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	slotRootParameters[2].Descriptor = materialCBV;
 
 	// Create root signature description
 	D3D12_ROOT_SIGNATURE_DESC rootDesc = { };
@@ -73,16 +81,16 @@ void D3DApp::BuildShadersAndInputLayout()
 {
 	HRESULT hr = S_OK;
 
-	mvsByteCode = CompileShader(L"Shaders\\vertex.hlsl",
+	mvsByteCode = CompileShader(L"Shaders\\main.hlsl",
 		nullptr, "VS", "vs_5_0");
-	mpsByteCode = CompileShader(L"Shaders\\color.hlsl",
+	mpsByteCode = CompileShader(L"Shaders\\main.hlsl",
 		nullptr, "PS", "ps_5_0");
 
 	mInputLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
 		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12,
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12,
 		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 }
