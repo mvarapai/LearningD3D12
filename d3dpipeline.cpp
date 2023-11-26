@@ -7,6 +7,8 @@
  *********************************************************************/
 
 #include <d3d12.h>
+#include <DDSTextureLoader.h>
+#include <ResourceUploadBatch.h>
 
 #include "d3dinit.h"
 #include "d3dUtil.h"
@@ -17,7 +19,7 @@ using Microsoft::WRL::ComPtr;
 void D3DApp::BuildRootSignature()
 {
 	// Root parameter can be a table, root descriptor or root constants.
-	D3D12_ROOT_PARAMETER slotRootParameters[3] = { };
+	D3D12_ROOT_PARAMETER slotRootParameters[4] = { };
 
 	// Pass CBV will be bound to b0
 	D3D12_ROOT_DESCRIPTOR perPassCBV = { };
@@ -32,6 +34,18 @@ void D3DApp::BuildRootSignature()
 	materialCBV.RegisterSpace = 0;
 	materialCBV.ShaderRegister = 2;
 
+	D3D12_ROOT_DESCRIPTOR_TABLE srvTable = { };
+
+	D3D12_DESCRIPTOR_RANGE srvDescriptorRange = { };
+	srvDescriptorRange.BaseShaderRegister = 0;
+	srvDescriptorRange.NumDescriptors = mNumTextures;
+	srvDescriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	srvDescriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	srvDescriptorRange.RegisterSpace = 0;
+
+	srvTable.pDescriptorRanges = &srvDescriptorRange;
+	srvTable.NumDescriptorRanges = 1;
+
 	slotRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	slotRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	slotRootParameters[0].Descriptor = perPassCBV;
@@ -44,12 +58,33 @@ void D3DApp::BuildRootSignature()
 	slotRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	slotRootParameters[2].Descriptor = materialCBV;
 
+	slotRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	slotRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	slotRootParameters[3].DescriptorTable = srvTable;
+
+	// Create static samplers
+
+	D3D12_STATIC_SAMPLER_DESC samplerDesc = { };
+	samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	samplerDesc.MinLOD = 0;
+	samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+	samplerDesc.MipLODBias = 0.0f;
+	samplerDesc.MaxAnisotropy = 1;
+	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+	samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+	samplerDesc.RegisterSpace = 0;
+	samplerDesc.ShaderRegister = 0;
+	samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
 	// Create root signature description
 	D3D12_ROOT_SIGNATURE_DESC rootDesc = { };
 	rootDesc.NumParameters = _countof(slotRootParameters);
 	rootDesc.pParameters = slotRootParameters;
-	rootDesc.NumStaticSamplers = 0;
-	rootDesc.pStaticSamplers = nullptr;
+	rootDesc.NumStaticSamplers = 1;
+	rootDesc.pStaticSamplers = &samplerDesc;
 	rootDesc.Flags =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
@@ -91,6 +126,8 @@ void D3DApp::BuildShadersAndInputLayout()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
 		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12,
+		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24,
 		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 }
@@ -181,4 +218,18 @@ void D3DApp::BuildPSO()
 
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(
 		&linePSODesc, IID_PPV_ARGS(mPSOs[1].GetAddressOf())));
+}
+
+void D3DApp::LoadTextures()
+{
+	DirectX::ResourceUploadBatch upload(md3dDevice.Get());
+
+	upload.Begin();
+
+	DirectX::CreateDDSTextureFromFile(md3dDevice.Get(), upload, L"Textures\\grass.dds", mTextures[0].GetAddressOf());
+	DirectX::CreateDDSTextureFromFile(md3dDevice.Get(), upload, L"Textures\\water1.dds", mTextures[1].GetAddressOf());
+
+	auto finish = upload.End(mCommandQueue.Get());
+
+	finish.wait();
 }

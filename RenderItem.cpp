@@ -4,7 +4,7 @@
 
 using namespace DirectX;
 
-
+// Deprecated
 RenderItem RenderItem::CreatePaintedCube(StaticGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT matIndex)
 {
 	RenderItem renderItem = RenderItem();
@@ -137,8 +137,10 @@ RenderItem RenderItem::CreateTerrain(StaticGeometry<Vertex>* meshGeometry, UINT 
 				1.0f,
 				-0.3f * sinf(0.1f * x) + 0.03f * x * sinf(0.1f * z));
 
+			XMFLOAT2 uv(0.05 * x, 0.05 * z);
+
 			vertices.push_back(Vertex{
-				{ x, height, z }, n });
+				{ x, height, z }, n , uv});
 		}
 	}
 
@@ -189,9 +191,9 @@ RenderItem RenderItem::CreatePlane(StaticGeometry<Vertex>* meshGeometry, UINT ob
 			float height = -5.0f;
 
 			XMFLOAT3 n(0.0f, 1.0f, 0.0f);
-
+			XMFLOAT2 uv(0.01 * x, 0.01 * z);
 			vertices.push_back(Vertex{
-				{ x, height, z }, n });
+				{ x, height, z }, n , uv});
 		}
 	}
 

@@ -111,8 +111,9 @@ void D3DApp::InitD3D()
 
 	BuildFrameResources();
 
-	CreateConstantBufferHeap();
-	BuildConstantBuffers();
+	LoadTextures();
+	CreateSRVHeap();
+	BuildSRVs();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
 	BuildMaterials();
@@ -374,6 +375,7 @@ void D3DApp::BuildGeometry()
 
 	std::unique_ptr<RenderItem> terrain = std::make_unique<RenderItem>(
 		RenderItem::CreateTerrain(mMeshGeometry.get(), 0, mMaterials["grass"]->CBIndex, 100, 100, 100.0f, 100.0f));
+	terrain->mTextureIndex = 0;
 
 	std::unique_ptr<RenderItem> plane = std::make_unique<RenderItem>(
 		RenderItem::CreatePlane(mMeshGeometry.get(), 1, 1, 100, 100, 100.0f, 100.0f));

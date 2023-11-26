@@ -10,6 +10,7 @@ struct Vertex
 {
 	DirectX::XMFLOAT3 Pos;		// Position in non-homogeneous coordinates
 	DirectX::XMFLOAT3 Normal;	// Vertex normal
+	DirectX::XMFLOAT2 TexC;		// Texture coordinates
 };
 
 struct ObjectConstants

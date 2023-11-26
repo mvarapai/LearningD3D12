@@ -53,11 +53,16 @@ cbuffer cbPass : register(b0)
     // are spot lights for a maximum of MaxLights per object.
     Light gLights[MaxLights];
 };
+
+SamplerState gSamLinearWrap : register(s0);
+
+Texture2D gDiffuseMap : register(t0);
  
 struct VertexIn
 {
     float3 PosL : POSITION;
     float3 NormalL : NORMAL;
+	float2 TexC : TEXCOORD;
 };
 
 struct VertexOut
@@ -65,6 +70,7 @@ struct VertexOut
     float4 PosH : SV_POSITION;
     float3 PosW : POSITION;
     float3 NormalW : NORMAL;
+	float2 TexC : TEXCOORD;
 };
 
 VertexOut VS(VertexIn vin)
@@ -80,6 +86,8 @@ VertexOut VS(VertexIn vin)
 
     // Transform to homogeneous clip space.
     vout.PosH = mul(posW, gViewProj);
+	
+	vout.TexC = vin.TexC;
 
     return vout;
 }
@@ -92,11 +100,13 @@ float4 PS(VertexOut pin) : SV_Target
     // Vector from point being lit to eye. 
     float3 toEyeW = normalize(gEyePosW - pin.PosW);
 
+	float4 diffuseAlbedo = gDiffuseMap.Sample(gSamLinearWrap, pin.TexC) * gDiffuseAlbedo;
+
 	// Indirect lighting.
-    float4 ambient = gAmbientLight * gDiffuseAlbedo;
+    float4 ambient = gAmbientLight * diffuseAlbedo;
 
     const float shininess = 1.0f - gRoughness;
-    Material mat = { gDiffuseAlbedo, gFresnelR0, shininess };
+    Material mat = { diffuseAlbedo, gFresnelR0, shininess };
     float3 shadowFactor = 1.0f;
     float4 directLight = ComputeLighting(gLights, mat, pin.PosW,
         pin.NormalW, toEyeW, shadowFactor);
@@ -104,7 +114,7 @@ float4 PS(VertexOut pin) : SV_Target
     float4 litColor = ambient + directLight;
 
     // Common convention to take alpha from diffuse material.
-    litColor.a = gDiffuseAlbedo.a;
+    litColor.a = diffuseAlbedo.a;
 
     return litColor;
 }

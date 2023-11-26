@@ -40,13 +40,14 @@ public:
 		}
 	}
 
-	void Draw(ID3D12GraphicsCommandList* pCmdList, D3D12_GPU_VIRTUAL_ADDRESS objectCBV, D3D12_GPU_VIRTUAL_ADDRESS materialCBV)
+	void Draw(ID3D12GraphicsCommandList* pCmdList, D3D12_GPU_VIRTUAL_ADDRESS objectCBV, D3D12_GPU_VIRTUAL_ADDRESS materialCBV, D3D12_GPU_DESCRIPTOR_HANDLE tex)
 	{
 		pCmdList->IASetPrimitiveTopology(mPrimitiveType);
 
 		// Set the CB descriptor to the 1 slot of descriptor table
 		pCmdList->SetGraphicsRootConstantBufferView(1, objectCBV);
 		pCmdList->SetGraphicsRootConstantBufferView(2, materialCBV);
+		pCmdList->SetGraphicsRootDescriptorTable(3, tex);
 
 		pCmdList->DrawIndexedInstanced(mSubmesh.IndexCount, 1,
 			mSubmesh.StartIndexLocation, mSubmesh.BaseVertexLocation, 0);
@@ -81,4 +82,7 @@ private:
 	D3D12_PRIMITIVE_TOPOLOGY mPrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 public:
 	SubmeshGeometry mSubmesh;
+
+	int mTextureIndex = 1;
+
 };

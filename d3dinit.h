@@ -93,10 +93,13 @@ private:
 
 	// Shader input signature
 	std::vector<D3D12_INPUT_ELEMENT_DESC>				mInputLayout;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		mCbvHeap = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		mSrvHeap = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature>			mRootSignature = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob>					mvsByteCode = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob>					mpsByteCode = nullptr;
+
+	static const int									mNumTextures = 2;
+	Microsoft::WRL::ComPtr<ID3D12Resource>				mTextures[mNumTextures];
 
 	// An array of pipeline states
 	static const int									gNumRenderModes = 2;
@@ -187,14 +190,14 @@ private:
 
 	void BuildFrameResources();					// Creates frame resource containers
 
-	void CreateConstantBufferHeap();			// Create shader-visible CBV heap
-	void BuildConstantBuffers();				// Creates per object and pass CBVs
+	void CreateSRVHeap();			// Create shader-visible CBV heap
+	void BuildSRVs();				// Creates per object and pass CBVs
 	void BuildRootSignature();					// Defines the shader input signature
 	void BuildShadersAndInputLayout();			// Compiles shaders and defines input layout
 	void BuildMaterials();						// Build materials to use in rendering
 	void BuildGeometry();						// Builds StaticGeometry of the box and creates RenderItem
 	void BuildPSO();							// Configures rendering pipeline
-
+	void LoadTextures();						// Load textures
 
 	// Used in OnResize():
 	void CreateRenderTargetView();				// Create descriptors for swap chain buffers
@@ -213,8 +216,7 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
 
 	// Get current GPU handles for CBVs
-	D3D12_GPU_DESCRIPTOR_HANDLE GetPassCBV(UINT frameResouceIndex) const;
-	D3D12_GPU_DESCRIPTOR_HANDLE GetPerObjectCBV(UINT frameResouceIndex, UINT objectIndex) const;
+	D3D12_GPU_DESCRIPTOR_HANDLE GetTextureSRV(UINT textureIndex) const;
 
 	// Get current back buffer resource
 	ID3D12Resource* GetCurrentBackBuffer();
