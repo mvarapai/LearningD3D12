@@ -163,3 +163,55 @@ RenderItem RenderItem::CreateTerrain(StaticGeometry<Vertex>* meshGeometry, UINT 
 	return renderItem;
 }
 
+RenderItem RenderItem::CreatePlane(StaticGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT matIndex, UINT n, UINT m, float width, float depth)
+{
+	RenderItem renderItem = RenderItem();
+	renderItem.mGeometry = meshGeometry;
+	renderItem.mObjCBIndex = objCBIndex;
+	renderItem.mMaterialIndex = matIndex;
+
+	std::vector<Vertex> vertices;
+	std::vector<uint16_t> indices;
+
+	float dx = width / static_cast<float>(n - 1);
+	float dz = depth / static_cast<float>(m - 1);
+
+	float zeroX = -width / 2;
+	float zeroZ = depth / 2;
+
+	// Generate vertices
+	for (UINT i = 0; i < m; i++)
+	{
+		for (UINT j = 0; j < n; j++)
+		{
+			float x = zeroX + j * dx;
+			float z = zeroZ - i * dz;
+			float height = -5.0f;
+
+			XMFLOAT3 n(0.0f, 1.0f, 0.0f);
+
+			vertices.push_back(Vertex{
+				{ x, height, z }, n });
+		}
+	}
+
+	// Generate indices
+	for (UINT i = 0; i < m - 1; i++)
+	{
+		for (UINT j = 0; j < n - 1; j++)
+		{
+			// Generate indices for quad down and to the right
+			indices.push_back(j + i * n);
+			indices.push_back((j + 1) + i * n);
+			indices.push_back(j + (i + 1) * n);
+
+			indices.push_back((j + 1) + i * n);
+			indices.push_back((j + 1) + (i + 1) * n);
+			indices.push_back(j + (i + 1) * n);
+		}
+	}
+
+	renderItem.mSubmesh = meshGeometry->AddVertexData(vertices, indices);
+
+	return renderItem;
+}

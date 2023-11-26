@@ -347,7 +347,7 @@ void D3DApp::BuildMaterials()
 	grass->CBIndex = 0;
 	grass->DiffuseAlbedo = XMFLOAT4(0.0f, 0.6f, 0.0f, 1.0f);
 	grass->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
-	grass->Roughness = 0.125f;
+	grass->Roughness = 1.0f;
 	// This is not a good water material definition, but we do not have
 	// all the rendering tools we need (transparency, environment
 	// reflection), so we fake it for now.
@@ -366,14 +366,17 @@ void D3DApp::BuildGeometry()
 	// Initialize StaticGeometry
 	mMeshGeometry = std::make_unique<StaticGeometry<Vertex>>(md3dDevice.Get(), mCommandList.Get());
 
-	std::unique_ptr<RenderItem> renderItem1 = std::make_unique<RenderItem>(
-		RenderItem::CreatePaintedCube(mMeshGeometry.get(), 0, mMaterials["grass"]->CBIndex));
+	//std::unique_ptr<RenderItem> renderItem1 = std::make_unique<RenderItem>(
+	//	RenderItem::CreatePaintedCube(mMeshGeometry.get(), 0, mMaterials["grass"]->CBIndex));
 
-	std::unique_ptr<RenderItem> renderItem2 = std::make_unique<RenderItem>(
-		RenderItem::CreateGrid(mMeshGeometry.get(), 1, mMaterials["grass"]->CBIndex, 10, 1.0f));
+	//std::unique_ptr<RenderItem> renderItem2 = std::make_unique<RenderItem>(
+	//	RenderItem::CreateGrid(mMeshGeometry.get(), 1, mMaterials["grass"]->CBIndex, 10, 1.0f));
 
 	std::unique_ptr<RenderItem> terrain = std::make_unique<RenderItem>(
-		RenderItem::CreateTerrain(mMeshGeometry.get(), 2, mMaterials["grass"]->CBIndex, 100, 100, 100.0f, 100.0f));
+		RenderItem::CreateTerrain(mMeshGeometry.get(), 0, mMaterials["grass"]->CBIndex, 100, 100, 100.0f, 100.0f));
+
+	std::unique_ptr<RenderItem> plane = std::make_unique<RenderItem>(
+		RenderItem::CreatePlane(mMeshGeometry.get(), 1, 1, 100, 100, 100.0f, 100.0f));
 
 	// Create GPU resources
 	mMeshGeometry->ConstructGeometry();
@@ -382,9 +385,10 @@ void D3DApp::BuildGeometry()
 	mAllRenderItems.push_back(std::vector<std::unique_ptr<RenderItem>>());
 	mAllRenderItems.push_back(std::vector<std::unique_ptr<RenderItem>>());
 
-	mAllRenderItems[0].push_back(std::move(renderItem1));
+	//mAllRenderItems[0].push_back(std::move(renderItem1));
 	mAllRenderItems[0].push_back(std::move(terrain));
-	mAllRenderItems[1].push_back(std::move(renderItem2));
+	mAllRenderItems[0].push_back(std::move(plane));
+	//mAllRenderItems[1].push_back(std::move(renderItem2));
 
 }
 

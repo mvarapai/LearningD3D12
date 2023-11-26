@@ -59,6 +59,7 @@ public:
 	static RenderItem CreatePaintedCube(StaticGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT matIndex);
 	static RenderItem CreateGrid(StaticGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT matIndex, UINT numRows, float cellLength);
 	static RenderItem CreateTerrain(StaticGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT matIndex, UINT n, UINT m, float width, float depth);
+	static RenderItem CreatePlane(StaticGeometry<Vertex>* meshGeometry, UINT objCBIndex, UINT matIndex, UINT n, UINT m, float width, float depth);
 
 private:
 	// World matrix for the shape to indicate its transform

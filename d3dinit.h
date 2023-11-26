@@ -158,7 +158,7 @@ private:
 
 public:
 
-	int gNumObjects = 3;
+	int gNumObjects = 2;
 	static const int gNumFrameResources = 3;
 	int gNumMaterials = 2;
 

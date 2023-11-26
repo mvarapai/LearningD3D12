@@ -9,6 +9,7 @@
 #pragma once
 
 #include <DirectXMath.h>
+#include <Windows.h>
 
 #include "MathHelper.h"
 #include "timer.h"
@@ -94,6 +95,7 @@ public:
 	}
 	void Update()
 	{
+		OnKeyDown();
 
 		// Translate into DirectXMath vectors
 		DirectX::XMVECTOR direction = DirectX::XMLoadFloat4(&mDirection);
@@ -123,21 +125,21 @@ public:
 		DirectX::XMStoreFloat4(&mPosition, position);
 	}
 
-	void OnKeyDown(WPARAM wParam)
+	void OnKeyDown()
 	{
-		if (wParam == 0x57) // W key
+		if (GetAsyncKeyState(0x57)) // W key
 		{
 			mSpeedZ += 1.0f;
 		}
-		if (wParam == 0x53) // S key
+		if (GetAsyncKeyState(0x53)) // S key
 		{
 			mSpeedZ -= 1.0f;
 		}
-		if (wParam == 0x44) // D key
+		if (GetAsyncKeyState(0x44)) // D key
 		{
 			mSpeedX += 1.0f;
 		}
-		if (wParam == 0x41) // A key
+		if (GetAsyncKeyState(0x41)) // A key
 		{
 			mSpeedX -= 1.0f;
 		}

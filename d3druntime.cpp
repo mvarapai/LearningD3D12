@@ -163,19 +163,20 @@ void D3DApp::UpdatePassCB()
 	mPassCB.TotalTime = mTimer->TotalTime();
 	mPassCB.DeltaTime = mTimer->DeltaTime();
 
-	mPassCB.AmbientLight = { 0.1f, 0.1f, 0.1f, 1.0f };
+	mPassCB.AmbientLight = { 0.25f, 0.25f, 0.25f, 1.0f };
 
 	Light point = { };
-	point.FalloffEnd = 50.0f;
+	point.FalloffEnd = 20.0f;
 	point.FalloffStart = 0.1f;
-	point.Position = { 0.0f, 0.0f, 0.0f };
+	point.Position = { 0.0f, 12.0f, 0.0f };
 	point.Strength = { 1.0f, 1.0f, 1.0f };
 
 	Light dir = { };
-	dir.Direction = { 0.0f, -1.0f, 0.0f };
-	dir.Strength = { 20.0f, 20.0f, 20.0f };
+	dir.Direction = { 0.0f, -0.6f, -0.8f };
+	dir.Strength = { 1.0f, 1.0f, 1.0f };
 
 	//mPassCB.Lights[1] = point;
+	//mPassCB.Lights[0] = dir;
 	mPassCB.Lights[0] = dir;
 
 	UploadBuffer<PassConstants>* currPassCB = mCurrFrameResource->PassCB.get();
@@ -370,7 +371,6 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		return 0;
 	case WM_KEYDOWN:
-		mCamera->OnKeyDown(wParam);
 		return 0;
 	case WM_KEYUP:
 		if (wParam == VK_ESCAPE)
