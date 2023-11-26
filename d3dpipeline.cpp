@@ -218,6 +218,26 @@ void D3DApp::BuildPSO()
 
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(
 		&linePSODesc, IID_PPV_ARGS(mPSOs[1].GetAddressOf())));
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC blendingPSO = psoDesc;
+
+	D3D12_RENDER_TARGET_BLEND_DESC blendDesc = { };
+
+	blendDesc.BlendEnable = TRUE;
+	blendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+	blendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	blendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	blendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+	blendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
+	blendDesc.LogicOpEnable = FALSE;
+	blendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	blendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+
+	blendingPSO.BlendState.RenderTarget[0] = blendDesc;
+
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(
+		&blendingPSO, IID_PPV_ARGS(mPSOs[2].GetAddressOf())));
 }
 
 void D3DApp::LoadTextures()

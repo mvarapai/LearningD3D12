@@ -102,7 +102,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mTextures[mNumTextures];
 
 	// An array of pipeline states
-	static const int									gNumRenderModes = 2;
+	static const int									gNumRenderModes = 3;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mPSOs[gNumRenderModes];
 
 	std::unique_ptr<Camera>								mCamera = nullptr;

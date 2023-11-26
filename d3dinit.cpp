@@ -355,7 +355,7 @@ void D3DApp::BuildMaterials()
 	auto water = std::make_unique<Material>();
 	water->Name = "water";
 	water->CBIndex = 1;
-	water->DiffuseAlbedo = XMFLOAT4(0.0f, 0.2f, 0.6f, 1.0f);
+	water->DiffuseAlbedo = XMFLOAT4(0.0f, 0.2f, 0.6f, 0.5f);
 	water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
 	water->Roughness = 0.0f;
 	mMaterials["grass"] = std::move(grass);
@@ -386,11 +386,10 @@ void D3DApp::BuildGeometry()
 	// Initialize render item arrays
 	mAllRenderItems.push_back(std::vector<std::unique_ptr<RenderItem>>());
 	mAllRenderItems.push_back(std::vector<std::unique_ptr<RenderItem>>());
+	mAllRenderItems.push_back(std::vector<std::unique_ptr<RenderItem>>());
 
-	//mAllRenderItems[0].push_back(std::move(renderItem1));
 	mAllRenderItems[0].push_back(std::move(terrain));
-	mAllRenderItems[0].push_back(std::move(plane));
-	//mAllRenderItems[1].push_back(std::move(renderItem2));
+	mAllRenderItems[2].push_back(std::move(plane));
 
 }
 
