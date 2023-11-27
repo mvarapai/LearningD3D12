@@ -36,14 +36,23 @@ struct PassConstants
 	DirectX::XMFLOAT4X4 InvProj = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 ViewProj = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 InvViewProj = MathHelper::Identity4x4();
-	DirectX::XMFLOAT3 EyePosW = { };
 
+	DirectX::XMFLOAT3 EyePosW = { };
 	float NearZ = 0;
+
 	float FarZ = 0;
 	float TotalTime = 0;
 	float DeltaTime = 0;
+	float _pad0 = 0;
 
 	DirectX::XMFLOAT4 AmbientLight = { };
+
+	DirectX::XMFLOAT4 FogColor = { };
+
+	float FogStart = 0;		// Distance at which objects start to fade
+	float FogRange = 0;		// Distance at which objects are no longer visible
+	float _pad1 = 0;
+	float _pad2 = 0;
 
 	Light Lights[16];
 };

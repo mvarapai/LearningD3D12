@@ -116,10 +116,16 @@ void D3DApp::BuildShadersAndInputLayout()
 {
 	HRESULT hr = S_OK;
 
+	const D3D_SHADER_MACRO defines[] =
+	{
+		"FOG", "1",
+		NULL, NULL
+	};
+
 	mvsByteCode = CompileShader(L"Shaders\\main.hlsl",
-		nullptr, "VS", "vs_5_0");
+		defines, "VS", "vs_5_0");
 	mpsByteCode = CompileShader(L"Shaders\\main.hlsl",
-		nullptr, "PS", "ps_5_0");
+		defines, "PS", "ps_5_0");
 
 	mInputLayout =
 	{

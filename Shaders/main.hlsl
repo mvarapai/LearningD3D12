@@ -47,6 +47,10 @@ cbuffer cbPass : register(b0)
     float gDeltaTime;
     float4 gAmbientLight;
 
+	float4 gFogColor;
+	float gFogStart;
+	float gFogRange;
+
     // Indices [0, NUM_DIR_LIGHTS) are directional lights;
     // indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHTS) are point lights;
     // indices [NUM_DIR_LIGHTS+NUM_POINT_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHT+NUM_SPOT_LIGHTS)
@@ -98,9 +102,14 @@ float4 PS(VertexOut pin) : SV_Target
     pin.NormalW = normalize(pin.NormalW);
 
     // Vector from point being lit to eye. 
-    float3 toEyeW = normalize(gEyePosW - pin.PosW);
+	float distToEye = length(gEyePosW - pin.PosW);
+    float3 toEyeW = (gEyePosW - pin.PosW) / distToEye;
 
 	float4 diffuseAlbedo = gDiffuseMap.Sample(gSamLinearWrap, pin.TexC) * gDiffuseAlbedo;
+
+#ifdef ALPHA_TEST
+	clip(diffuseAlbedo.a - 0.1f);
+#endif
 
 	// Indirect lighting.
     float4 ambient = gAmbientLight * diffuseAlbedo;
@@ -112,6 +121,11 @@ float4 PS(VertexOut pin) : SV_Target
         pin.NormalW, toEyeW, shadowFactor);
 
     float4 litColor = ambient + directLight;
+
+#ifdef FOG
+	float fogAmount = saturate((distToEye - gFogStart) / (gFogRange - gFogStart));
+	litColor = lerp(litColor, gFogColor, fogAmount);
+#endif
 
     // Common convention to take alpha from diffuse material.
     litColor.a = diffuseAlbedo.a;

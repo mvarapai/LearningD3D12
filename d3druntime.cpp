@@ -164,6 +164,10 @@ void D3DApp::UpdatePassCB()
 
 	mPassCB.AmbientLight = { 0.25f, 0.25f, 0.25f, 1.0f };
 
+	XMStoreFloat4(&mPassCB.FogColor, DirectX::Colors::Gray.v);
+	mPassCB.FogStart = 30.0f;
+	mPassCB.FogRange = 100.0f;
+
 	Light point = { };
 	point.FalloffEnd = 20.0f;
 	point.FalloffStart = 0.1f;
