@@ -16,7 +16,7 @@
 using Microsoft::WRL::ComPtr;
 
  // Create root signature
-void D3DApp::BuildRootSignature()
+void d3d_base::BuildRootSignature()
 {
 	// Root parameter can be a table, root descriptor or root constants.
 	D3D12_ROOT_PARAMETER slotRootParameters[4] = { };
@@ -112,7 +112,7 @@ void D3DApp::BuildRootSignature()
 }
 
 // Compile shaders and create input layout
-void D3DApp::BuildShadersAndInputLayout()
+void d3d_base::BuildShadersAndInputLayout()
 {
 	HRESULT hr = S_OK;
 
@@ -138,7 +138,7 @@ void D3DApp::BuildShadersAndInputLayout()
 	};
 }
 
-void D3DApp::BuildPSO()
+void d3d_base::BuildPSO()
 {
 	// Rasterizer desc
 
@@ -246,7 +246,7 @@ void D3DApp::BuildPSO()
 		&blendingPSO, IID_PPV_ARGS(mPSOs[2].GetAddressOf())));
 }
 
-void D3DApp::LoadTextures()
+void d3d_base::LoadTextures()
 {
 	DirectX::ResourceUploadBatch upload(md3dDevice.Get());
 

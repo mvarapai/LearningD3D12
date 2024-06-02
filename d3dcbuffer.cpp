@@ -1,6 +1,6 @@
 /*****************************************************************//**
  * \file   d3dcbuffer.cpp
- * \brief  Contains implementations for D3DApp constant buffer methods.
+ * \brief  Contains implementations for d3d_base constant buffer methods.
  * 
  * \author Mikalai Varapai
  * \date   October 2023
@@ -8,7 +8,7 @@
 #include "d3dinit.h"
 
 // Create CBV heap with pass and per object CBVs and shader visible flag
-void D3DApp::CreateSRVHeap()
+void d3d_base::CreateSRVHeap()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = { };
 	srvHeapDesc.NumDescriptors = mNumTextures;
@@ -19,7 +19,7 @@ void D3DApp::CreateSRVHeap()
 		IID_PPV_ARGS(mSrvHeap.GetAddressOf())));
 }
 
-void D3DApp::BuildSRVs()
+void d3d_base::BuildSRVs()
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = mSrvHeap->GetCPUDescriptorHandleForHeapStart();
 
@@ -40,7 +40,7 @@ void D3DApp::BuildSRVs()
 }
 
 // Returns GPU descriptor handle for current frame's pass CBV
-D3D12_GPU_DESCRIPTOR_HANDLE D3DApp::GetTextureSRV(UINT textureIndex) const
+D3D12_GPU_DESCRIPTOR_HANDLE d3d_base::GetTextureSRV(UINT textureIndex) const
 {
 	D3D12_GPU_DESCRIPTOR_HANDLE textureHandle = mSrvHeap->GetGPUDescriptorHandleForHeapStart();
 	textureHandle.ptr += static_cast<UINT64>(textureIndex) * mCbvSrvDescriptorSize;

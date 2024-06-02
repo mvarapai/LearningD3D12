@@ -13,30 +13,25 @@
 #include "d3dinit.h"
 #include "d3dUtil.h"
 
-Timer* g_timer = nullptr;
-
 // Entry point to the app
 int WINAPI WinMain(_In_ HINSTANCE hInstance,// Handle to app in Windows
 	_In_opt_ HINSTANCE hPrevInstance,		// Not used
 	_In_ PSTR pCmdLine,						// Command line (PSTR = char*)
 	_In_ int nCmdShow)						// Show Command
 {
-	// Create timer
-	g_timer = new Timer();
-	g_timer->Reset();
-	g_timer->Start();
+	D3DWindow window = { hInstance };
+	window.Initialize();
 
-	D3DApp::Initialize(hInstance, nCmdShow, g_timer);
+	d3d_base renderer;
+	renderer.Initialize(window.GetWindowHandle());
 
-	D3DApp::GetApp()->Run();
-
-	delete g_timer;
-
+	window.ShowD3DWindow(nCmdShow, &renderer);
+	renderer.Run();
 	return 0;
 }
 
 // Main program cycle
-int D3DApp::Run()
+int d3d_base::Run()
 {
 	// Process messages
 	MSG msg = { 0 };

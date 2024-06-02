@@ -9,11 +9,6 @@
 
 #define MaxLights 16
 
-void main()
-{
-
-}
-
 struct Material
 {
     float4 DiffuseAlbedo;

@@ -19,54 +19,30 @@ using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
-// Initilalize static variable with nullptr
-D3DApp* D3DApp::mApp = nullptr;
-
-// Constructor: sets static instance of the class and the timer
-D3DApp::D3DApp(Timer* timer)
-{
-	mApp = this;
-	mTimer = timer;
-}
-
-// Getter for the static D3DApp instance
-D3DApp* D3DApp::GetApp() { return mApp; }
-
 /**
 * Getter function for paused state.
 * @return True if the application is paused,
 * false otherwise
 */
-bool D3DApp::IsPaused() { return mAppPaused; }
+bool d3d_base::IsPaused() { return mAppPaused; }
 
 /**
 * Function that returns the ratio of window width to height.
 * @return Aspect ratio
 */
-float D3DApp::AspectRatio()
+float d3d_base::AspectRatio()
 {
 	return static_cast<float>(mClientWidth) / mClientHeight;
 }
 
-/**
-* Create and intialize DirectX and the game window.
-* Sets the timer before the creation of a window so that
-* first WndProc call can have access to it.
-* 
-* @param hInst - window instance
-* @param nCmdShow - window show command
-* @param timer - pointer to Time class instance
-*/
-void D3DApp::Initialize(HINSTANCE hInst, int nCmdShow, Timer* timer)
-{
-	new D3DApp(timer);
-	D3DWindow::CreateD3DWindow(hInst, nCmdShow);
-	mApp->InitD3D();
-}
-
 /// Calls D3D initialization functions
-void D3DApp::InitD3D()
+void d3d_base::Initialize(HWND hWnd)
 {
+	mhWnd = hWnd;
+
+	mTimer = std::make_unique<Timer>();
+	mTimer->Reset();
+	mTimer->Start();
 	// Enable the debug layer
 #if defined(DEBUG) || defined(_DEBUG)
 	{	
@@ -130,7 +106,7 @@ void D3DApp::InitD3D()
 }
 
 // Create D3D device and DXGI factory
-void D3DApp::CreateDevice()
+void d3d_base::CreateDevice()
 {
 	// Create dxgi factory
 	ThrowIfFailed(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(
@@ -157,7 +133,7 @@ void D3DApp::CreateDevice()
 }
 
 // Creates fence and gets descriptor increment sizes
-void D3DApp::CreateFenceAndQueryDescriptorSizes()
+void d3d_base::CreateFenceAndQueryDescriptorSizes()
 {
 	// Create Fence and set 0 as initial value
 	ThrowIfFailed(md3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
@@ -174,7 +150,7 @@ void D3DApp::CreateFenceAndQueryDescriptorSizes()
 }
 
 // Create command queue, allocator, list
-void D3DApp::CreateCommandObjects()
+void d3d_base::CreateCommandObjects()
 {
 	// Create command queue
 
@@ -205,7 +181,7 @@ void D3DApp::CreateCommandObjects()
 }
 
 // Create/recreate swap chain, potentially used to enable MSAA
-void D3DApp::CreateSwapChain()
+void d3d_base::CreateSwapChain()
 {
 	// Release previous swap chain we will be recreating
 	mSwapChain.Reset(); // Reset the pointer itself
@@ -222,7 +198,7 @@ void D3DApp::CreateSwapChain()
 	sd.SampleDesc.Quality = msaaEnabled ? (msaaQualityLevels - 1) : 0;
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	sd.BufferCount = swapChainBufferCount;
-	sd.OutputWindow = D3DWindow::GetWindow()->GetWindowHandle();
+	sd.OutputWindow = mhWnd;
 	sd.Windowed = true;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
@@ -234,7 +210,7 @@ void D3DApp::CreateSwapChain()
 }
 
 // Create descriptor heaps - RTV and DSV
-void D3DApp::CreateRTVAndDSVDescriptorHeaps()
+void d3d_base::CreateRTVAndDSVDescriptorHeaps()
 {
 	// Create render target view heap, containing two views
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = { };
@@ -259,7 +235,7 @@ void D3DApp::CreateRTVAndDSVDescriptorHeaps()
 
 // Gets buffers from swap chain and creates views for them.
 // Stores swap chain buffers in the array field.
-void D3DApp::CreateRenderTargetView()
+void d3d_base::CreateRenderTargetView()
 {
 	// Get pointer to the start of RTV heap
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle =
@@ -282,7 +258,7 @@ void D3DApp::CreateRenderTargetView()
 }
 
 // Create a DS resource, commit it to the GPU and create a descriptor
-void D3DApp::CreateDepthStencilBufferAndView()
+void d3d_base::CreateDepthStencilBufferAndView()
 {
 	D3D12_RESOURCE_DESC depthStencilDesc = { };
 	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -331,17 +307,17 @@ void D3DApp::CreateDepthStencilBufferAndView()
 }
 
 // Create frame resouce objects
-void D3DApp::BuildFrameResources()
+void d3d_base::BuildFrameResources()
 {
 	for (int i = 0; i < gNumFrameResources; i++)
 	{
 		mFrameResources.push_back(
 			std::make_unique<FrameResource>(md3dDevice.Get(), 1, gNumObjects, gNumMaterials));
 	}
-	mCamera = std::make_unique<Camera>(XMVectorSet(5.0f, 2.0f, 5.0f, 1.0f), XM_PI * 7 / 4, -0.2f, mTimer);
+	mCamera = std::make_unique<Camera>(XMVectorSet(5.0f, 2.0f, 5.0f, 1.0f), XM_PI * 7 / 4, -0.2f, mTimer.get());
 }
 
-void D3DApp::BuildMaterials()
+void d3d_base::BuildMaterials()
 {
 	auto grass = std::make_unique<Material>();
 	grass->Name = "grass";
@@ -362,7 +338,7 @@ void D3DApp::BuildMaterials()
 	mMaterials["water"] = std::move(water);
 }
 
-void D3DApp::BuildGeometry()
+void d3d_base::BuildGeometry()
 {
 	// Initialize StaticGeometry
 	mMeshGeometry = std::make_unique<StaticGeometry<Vertex>>(md3dDevice.Get(), mCommandList.Get());
@@ -394,7 +370,7 @@ void D3DApp::BuildGeometry()
 }
 
 // Returns amount of quality levels available for 4X MSAA
-int D3DApp::GetMSAAQualityLevels()
+int d3d_base::GetMSAAQualityLevels()
 {
 	D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels{};
 	msQualityLevels.Format = mBackBufferFormat;
@@ -411,19 +387,19 @@ int D3DApp::GetMSAAQualityLevels()
 }
 
 // Get CPU handle for DS descriptor
-D3D12_CPU_DESCRIPTOR_HANDLE D3DApp::DepthStencilView() const
+D3D12_CPU_DESCRIPTOR_HANDLE d3d_base::DepthStencilView() const
 {
 	return mDsvHeap->GetCPUDescriptorHandleForHeapStart();
 }
 
 // Get current back buffer as a GPU resource
-ID3D12Resource* D3DApp::GetCurrentBackBuffer()
+ID3D12Resource* d3d_base::GetCurrentBackBuffer()
 {
 	return mSwapChainBuffer[mCurrBackBuffer].Get();
 }
 
 // Get CPU handle for current render target view
-D3D12_CPU_DESCRIPTOR_HANDLE D3DApp::CurrentBackBufferView() const
+D3D12_CPU_DESCRIPTOR_HANDLE d3d_base::CurrentBackBufferView() const
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = mRtvHeap->GetCPUDescriptorHandleForHeapStart();
 	handle.ptr += (SIZE_T) mRtvDescriptorSize * mCurrBackBuffer;
@@ -431,7 +407,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3DApp::CurrentBackBufferView() const
 }
 
 // Wait till GPU finishes with all commands
-void D3DApp::FlushCommandQueue()
+void d3d_base::FlushCommandQueue()
 {
 	// Advance the fence value
 	mCurrentFence++;
@@ -460,7 +436,7 @@ void D3DApp::FlushCommandQueue()
 // - Command list is executed
 // - Viewport and scissor rects are reset
 // - Due to change of aspect ratio projection matrix is changed
-void D3DApp::OnResize()
+void d3d_base::OnResize()
 {
 	// Make sure all GPU commands are executed to avoid resource hazard
 	FlushCommandQueue();
@@ -518,7 +494,7 @@ void D3DApp::OnResize()
 }
 
 // Calculate FPS and update window text
-void D3DApp::CalculateFrameStats()
+void d3d_base::CalculateFrameStats()
 {
 	// Make static variables so that they don't change
 	// between function calls
@@ -540,7 +516,7 @@ void D3DApp::CalculateFrameStats()
 			L"		fps: " + fpsStr +
 			L"		mspf: " + mspfStr;
 
-		SetWindowText(D3DWindow::GetWindow()->GetWindowHandle(), windowText.c_str());
+		SetWindowText(mhWnd, windowText.c_str());
 
 		frameCnt = 0;
 		timeElapsed += 1.0f;
@@ -548,7 +524,7 @@ void D3DApp::CalculateFrameStats()
 }
 
 // Print debug string containing the list of adapters
-void D3DApp::LogAdapters()
+void d3d_base::LogAdapters()
 {
 	UINT i = 0;
 	IDXGIAdapter* adapter = nullptr;
@@ -578,7 +554,7 @@ void D3DApp::LogAdapters()
 }
 
 // For every adapter log a string of available outputs
-void D3DApp::LogAdapterOutputs(IDXGIAdapter* adapter)
+void d3d_base::LogAdapterOutputs(IDXGIAdapter* adapter)
 {
 	UINT i = 0;
 	IDXGIOutput* output = nullptr;
@@ -601,7 +577,7 @@ void D3DApp::LogAdapterOutputs(IDXGIAdapter* adapter)
 }
 
 // For every output log a string of available display modes
-void D3DApp::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format)
+void d3d_base::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format)
 {
 	UINT count = 0;
 	UINT flags = 0;

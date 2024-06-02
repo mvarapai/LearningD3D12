@@ -16,7 +16,6 @@
 #include <memory>
 
 #include "timer.h"
-#include "window.h"
 #include "d3dUtil.h"
 #include "UploadBuffer.h"
 #include "FrameResource.h"
@@ -26,7 +25,7 @@
 #include "d3dcamera.h" 
 
 // Class that initializes and operates DirectX 12
-class D3DApp
+class d3d_base
 {
 
 	/******************************************************
@@ -34,23 +33,18 @@ class D3DApp
 	 ******************************************************/
 
 public:
-
-	// Get D3DApp instance
-	static D3DApp* GetApp();
-
 	// Initialize the window and DirectX
-	static void Initialize(HINSTANCE hInst,				
-		int nCmdShow, Timer* timer);
+	void Initialize(HWND hWnd);
 
+	d3d_base() = default;
 private:
 
 	// Used to make this class one-instance, so
 	// that it cannot be accessed from outside
-	D3DApp(Timer* timer);
 
 	// Forbid copying
-	D3DApp(D3DApp& rhs) = delete;
-	D3DApp& operator=(D3DApp& rhs) = delete;
+	d3d_base(d3d_base& rhs) = delete;
+	d3d_base& operator=(d3d_base& rhs) = delete;
 
 private:
 
@@ -58,11 +52,10 @@ private:
 	 *					Class pointers
 	 ******************************************************/
 
-	// D3DApp static instance
-	static D3DApp*										mApp;
+	HWND												mhWnd;
 
-	// Timer instance, passed in Main
-	Timer*												mTimer = nullptr;
+	// Timer instance
+	std::unique_ptr<Timer>								mTimer = nullptr;
 
 	// Debug interface
 	Microsoft::WRL::ComPtr<ID3D12Debug>					mDebugController = nullptr;
@@ -176,7 +169,6 @@ private:
  **********************************************************/
 public:
 	
-	void InitD3D();								// Create DirectX objects
 	LRESULT MsgProc(HWND hwnd, UINT msg,		// Function for message processing,
 		WPARAM wParam, LPARAM lParam);			// called from WndProc of D3DWindow
 

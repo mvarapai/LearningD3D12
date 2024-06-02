@@ -127,7 +127,7 @@ float4 PS(VertexOut pin) : SV_Target
 	litColor = lerp(litColor, gFogColor, fogAmount);
 #endif
 
-    // Common convention to take alpha from diffuse material.
+    // Common convention to take alpha from diffuse material.c
     litColor.a = diffuseAlbedo.a;
 
     return litColor;

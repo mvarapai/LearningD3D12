@@ -16,7 +16,7 @@
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
-void D3DApp::DrawRenderItems()
+void d3d_base::DrawRenderItems()
 {
 	// We are using only one StaticGeometry
 	const D3D12_VERTEX_BUFFER_VIEW vbv = mMeshGeometry->VertexBufferView();
@@ -50,7 +50,7 @@ void D3DApp::DrawRenderItems()
 	}
 }
 
-void D3DApp::Draw()
+void d3d_base::Draw()
 {
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> currCmdAlloc =
 		mCurrFrameResource->CommandListAllocator;
@@ -119,7 +119,7 @@ void D3DApp::Draw()
 }
 
 // Stores world matrices to current frame's per object CB
-void D3DApp::UpdateObjectCBs()
+void d3d_base::UpdateObjectCBs()
 {
 	UploadBuffer<ObjectConstants>* currObjectCB = mCurrFrameResource->ObjectCB.get();
 	for (int psoIndex = 0; psoIndex < gNumRenderModes; psoIndex++)
@@ -131,7 +131,7 @@ void D3DApp::UpdateObjectCBs()
 	}
 }
 
-void D3DApp::UpdatePassCB()
+void d3d_base::UpdatePassCB()
 {
 	XMMATRIX view = XMLoadFloat4x4(&mCamera->mView);
 	XMMATRIX proj = XMLoadFloat4x4(&mProj);
@@ -186,7 +186,7 @@ void D3DApp::UpdatePassCB()
 	currPassCB->CopyData(0, mPassCB);
 }
 
-void D3DApp::UpdateMaterialCB()
+void d3d_base::UpdateMaterialCB()
 {
 	UploadBuffer<MaterialConstants>* currMaterialCB = mCurrFrameResource->MaterialCB.get();
 	for (auto& e : mMaterials)
@@ -208,7 +208,7 @@ void D3DApp::UpdateMaterialCB()
 	}
 }
 
-void D3DApp::Update()
+void d3d_base::Update()
 {
 	// Write to next frame resource
 	mCurrFrameResourceIndex =
@@ -234,22 +234,22 @@ void D3DApp::Update()
 	UpdateMaterialCB();
 }
 
-void D3DApp::OnMouseDown(WPARAM btnState, int x, int y)
+void d3d_base::OnMouseDown(WPARAM btnState, int x, int y)
 {
 	// Prepare to move
 	mCamera->mLastMousePos.x = x;
 	mCamera->mLastMousePos.y = y;
 
 	// Set mouse capture on current window
-	SetCapture(D3DWindow::GetWindow()->GetWindowHandle());
+	SetCapture(mhWnd);
 }
 
-void D3DApp::OnMouseUp(WPARAM btnState, int x, int y)
+void d3d_base::OnMouseUp(WPARAM btnState, int x, int y)
 {
 	ReleaseCapture();
 }
 
-void D3DApp::OnMouseMove(WPARAM btnState, int x, int y)
+void d3d_base::OnMouseMove(WPARAM btnState, int x, int y)
 {
 	if ((btnState & MK_LBUTTON) != 0)
 	{
@@ -258,7 +258,7 @@ void D3DApp::OnMouseMove(WPARAM btnState, int x, int y)
 }
 
 // Passed from default WndProc function
-LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT d3d_base::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
