@@ -24,6 +24,8 @@
 #include "geometry.h"
 #include "d3dcamera.h" 
 
+#include "d3dresource.h"
+
 // Class that initializes and operates DirectX 12
 class d3d_base
 {
@@ -52,6 +54,9 @@ private:
 	 *					Class pointers
 	 ******************************************************/
 
+	std::unique_ptr<StaticResources>					pStaticResources = nullptr;
+	std::unique_ptr<DynamicResources>					pDynamicResources = nullptr;
+
 	HWND												mhWnd;
 
 	// Timer instance
@@ -66,8 +71,6 @@ private:
 
 	// Flush management
 	Microsoft::WRL::ComPtr<ID3D12Fence>					mFence = nullptr;
-	std::vector<std::unique_ptr<FrameResource>>			mFrameResources;
-	FrameResource*										mCurrFrameResource = nullptr;
 
 	// Command objects
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue>			mCommandQueue = nullptr;
@@ -86,13 +89,9 @@ private:
 
 	// Shader input signature
 	std::vector<D3D12_INPUT_ELEMENT_DESC>				mInputLayout;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		mSrvHeap = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature>			mRootSignature = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob>					mvsByteCode = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob>					mpsByteCode = nullptr;
-
-	static const int									mNumTextures = 2;
-	Microsoft::WRL::ComPtr<ID3D12Resource>				mTextures[mNumTextures];
 
 	// An array of pipeline states
 	static const int									gNumRenderModes = 3;
@@ -100,15 +99,9 @@ private:
 
 	std::unique_ptr<Camera>								mCamera = nullptr;
 
-	// Geometry management
-	std::unique_ptr<StaticGeometry<Vertex>>				mMeshGeometry = nullptr;
-
 	// Sort RenderItems by the PSO used to render them
-	std::vector<std::vector<
-		std::unique_ptr<RenderItem>>>					mAllRenderItems;
-
-	std::unordered_map<std::string, 
-		std::unique_ptr<Material>>						mMaterials;
+	std::vector<std::unique_ptr<RenderItem>>			mRenderItemsDefault;
+	std::vector<std::unique_ptr<RenderItem>>			mRenderItemsWireframe;
 
 	// Viewport and scissor rect properties
 	D3D12_VIEWPORT mViewport = { };
@@ -124,11 +117,7 @@ private:
 
 private:
 
-	// Constant buffer structure containing pass constants
-	PassConstants mPassCB = { };
-
 	UINT64 mCurrentFence = 0;
-	int mCurrFrameResourceIndex = 0;
 	int	mCurrBackBuffer = 0;
 
 	// Current matrices
@@ -152,12 +141,6 @@ private:
 	bool mMinimized = false;
 	bool mResizing = false;		// Used to terminate drawing while resizing
 
-public:
-
-	int gNumObjects = 2;
-	static const int gNumFrameResources = 3;
-	int gNumMaterials = 2;
-
 private:
 
 	// Initial window dimensions, changed per onResize() call
@@ -180,16 +163,9 @@ private:
 	void CreateSwapChain();						// Create IDXGISwapChain, along with two buffers
 	void CreateRTVAndDSVDescriptorHeaps();		// Create arrays of descriptors
 
-	void BuildFrameResources();					// Creates frame resource containers
-
-	void CreateSRVHeap();			// Create shader-visible CBV heap
-	void BuildSRVs();				// Creates per object and pass CBVs
 	void BuildRootSignature();					// Defines the shader input signature
 	void BuildShadersAndInputLayout();			// Compiles shaders and defines input layout
-	void BuildMaterials();						// Build materials to use in rendering
-	void BuildGeometry();						// Builds StaticGeometry of the box and creates RenderItem
 	void BuildPSO();							// Configures rendering pipeline
-	void LoadTextures();						// Load textures
 
 	// Used in OnResize():
 	void CreateRenderTargetView();				// Create descriptors for swap chain buffers
@@ -207,9 +183,6 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
 
-	// Get current GPU handles for CBVs
-	D3D12_GPU_DESCRIPTOR_HANDLE GetTextureSRV(UINT textureIndex) const;
-
 	// Get current back buffer resource
 	ID3D12Resource* GetCurrentBackBuffer();
 public:
@@ -226,10 +199,7 @@ private:
 	void DrawRenderItems();						// Draw every render item
 
 	void Update();								// Function for game logic
-	void UpdateCamera();						// Update view matrix
 	void UpdatePassCB();						// Update and store in CB pass constants
-	void UpdateObjectCBs();						// Update and store in CB object's world matrix
-	void UpdateMaterialCB();					// Update material CB
 
 	void FlushCommandQueue();					// Used to wait till GPU finishes execution
 	void OnResize();							// Called when user finishes resizing

@@ -18,48 +18,27 @@ using namespace DirectX::PackedVector;
 
 void d3d_base::DrawRenderItems()
 {
-	// We are using only one StaticGeometry
-	const D3D12_VERTEX_BUFFER_VIEW vbv = mMeshGeometry->VertexBufferView();
-	const D3D12_INDEX_BUFFER_VIEW ibv = mMeshGeometry->IndexBufferView();
+	mCommandList->IASetVertexBuffers(0, 1, &pStaticResources->Geometries[0].VertexBufferView);
+	mCommandList->IASetIndexBuffer(&pStaticResources->Geometries[0].IndexBufferView);
 
-	mCommandList->IASetVertexBuffers(0, 1, &vbv);
-	mCommandList->IASetIndexBuffer(&ibv);
+	mRenderItemsDefault.at(0)->Draw(mCommandList.Get(), pDynamicResources->pCurrentFrameResource);
 
-	// Iterate through PSOs
-	for (UINT psoIndex = 0; psoIndex < gNumRenderModes; psoIndex++)
-	{
-		// The first PSO is set when command list is reset
-		if (psoIndex > 0)
-		{
-			mCommandList->SetPipelineState(mPSOs[psoIndex].Get());
-		}
-		// Iterate through render items
-		for (auto & ri : mAllRenderItems[psoIndex])
-		{
-			D3D12_GPU_VIRTUAL_ADDRESS objectCBV = mCurrFrameResource->ObjectCB->Resource()->GetGPUVirtualAddress();
-			objectCBV += static_cast<UINT64>(ri->GetCBIndex() * CalcConstantBufferByteSize(sizeof(ObjectConstants)));
+	mCommandList->SetPipelineState(mPSOs[2].Get());
 
-			D3D12_GPU_VIRTUAL_ADDRESS materialCBV = mCurrFrameResource->MaterialCB->Resource()->GetGPUVirtualAddress();
-			materialCBV += static_cast<UINT64>(ri->GetMaterialIndex() * CalcConstantBufferByteSize(sizeof(MaterialConstants)));
+	mRenderItemsDefault.at(1)->Draw(mCommandList.Get(), pDynamicResources->pCurrentFrameResource);
 
-			D3D12_GPU_DESCRIPTOR_HANDLE textureSRV = mSrvHeap->GetGPUDescriptorHandleForHeapStart();
-			textureSRV.ptr += static_cast<UINT64>(ri->mTextureIndex * mCbvSrvDescriptorSize);
-
-			ri->Draw(mCommandList.Get(), objectCBV, materialCBV, textureSRV);
-		}
-	}
 }
 
 void d3d_base::Draw()
 {
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> currCmdAlloc =
-		mCurrFrameResource->CommandListAllocator;
+	ID3D12CommandAllocator* currCmdAlloc =
+		pDynamicResources->pCurrentFrameResource->CommandListAllocator.Get();
 
 	// Reuse the memory since the frame is processed
 	ThrowIfFailed(currCmdAlloc->Reset());
 
 	// Use the default PSO
-	ThrowIfFailed(mCommandList->Reset(currCmdAlloc.Get(), mPSOs[0].Get()));
+	ThrowIfFailed(mCommandList->Reset(currCmdAlloc, mPSOs[0].Get()));
 
 
 	// To know what to render
@@ -89,9 +68,10 @@ void d3d_base::Draw()
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 	
 	// Set pass constants
-	mCommandList->SetGraphicsRootConstantBufferView(0, mCurrFrameResource->PassCB->Resource()->GetGPUVirtualAddress());
+	mCommandList->SetGraphicsRootConstantBufferView(0, 
+		pDynamicResources->pCurrentFrameResource->PassCB->Resource()->GetGPUVirtualAddress());
 
-	mCommandList->SetDescriptorHeaps(1, mSrvHeap.GetAddressOf());
+	mCommandList->SetDescriptorHeaps(1, pStaticResources->mSRVHeap.GetAddressOf());
 
 	// Draw objects
 	DrawRenderItems();
@@ -114,25 +94,14 @@ void d3d_base::Draw()
 	mCurrBackBuffer = (mCurrBackBuffer + 1) % swapChainBufferCount;
 
 	// Set fence point for current frame resource
-	mCurrFrameResource->Fence = ++mCurrentFence;
+	pDynamicResources->pCurrentFrameResource->Fence = ++mCurrentFence;
 	mCommandQueue->Signal(mFence.Get(), mCurrentFence);
-}
-
-// Stores world matrices to current frame's per object CB
-void d3d_base::UpdateObjectCBs()
-{
-	UploadBuffer<ObjectConstants>* currObjectCB = mCurrFrameResource->ObjectCB.get();
-	for (int psoIndex = 0; psoIndex < gNumRenderModes; psoIndex++)
-	{
-		for (std::unique_ptr<RenderItem>& renderItem : mAllRenderItems[psoIndex])
-		{
-			renderItem->Update(currObjectCB);
-		}
-	}
 }
 
 void d3d_base::UpdatePassCB()
 {
+	PassConstants mPassCB;
+
 	XMMATRIX view = XMLoadFloat4x4(&mCamera->mView);
 	XMMATRIX proj = XMLoadFloat4x4(&mProj);
 
@@ -182,56 +151,16 @@ void d3d_base::UpdatePassCB()
 	//mPassCB.Lights[0] = dir;
 	mPassCB.Lights[0] = dir;
 
-	UploadBuffer<PassConstants>* currPassCB = mCurrFrameResource->PassCB.get();
+	UploadBuffer<PassConstants>* currPassCB = pDynamicResources->pCurrentFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mPassCB);
-}
-
-void d3d_base::UpdateMaterialCB()
-{
-	UploadBuffer<MaterialConstants>* currMaterialCB = mCurrFrameResource->MaterialCB.get();
-	for (auto& e : mMaterials)
-	{
-		Material* material = e.second.get();
-		if (material->NumFramesDirty > 0)
-		{
-			// Update current material
-
-			MaterialConstants matconst = { };
-			matconst.DiffuseAlbedo = material->DiffuseAlbedo;
-			matconst.FresnelR0 = material->FresnelR0;
-			matconst.Roughness = material->Roughness;
-
-			currMaterialCB->CopyData(material->CBIndex, matconst);
-
-			material->NumFramesDirty--;
-		}
-	}
 }
 
 void d3d_base::Update()
 {
-	// Write to next frame resource
-	mCurrFrameResourceIndex =
-		(mCurrFrameResourceIndex + 1) % gNumFrameResources;
-	mCurrFrameResource = mFrameResources[mCurrFrameResourceIndex].get();
-
-	// Check whether the GPU has finished processing current frame
-	if (mCurrFrameResource->Fence != 0
-		&& mFence->GetCompletedValue() < mCurrFrameResource->Fence)
-	{
-		HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
-		ThrowIfFailed(mFence->SetEventOnCompletion(mCurrFrameResource->Fence, eventHandle));
-		if (eventHandle == nullptr) return;
-		WaitForSingleObject(eventHandle, INFINITE);
-		CloseHandle(eventHandle);
-	}
-
-	// Then, after the frame is processed we can update object and pass CBs,
-	// which write to frame resources
+	pDynamicResources->NextFrameResource(mFence.Get());
+	pDynamicResources->UpdateConstantBuffers();
 	mCamera->Update();
-	UpdateObjectCBs();
 	UpdatePassCB();
-	UpdateMaterialCB();
 }
 
 void d3d_base::OnMouseDown(WPARAM btnState, int x, int y)

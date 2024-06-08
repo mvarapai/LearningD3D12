@@ -38,7 +38,7 @@ void d3d_base::BuildRootSignature()
 
 	D3D12_DESCRIPTOR_RANGE srvDescriptorRange = { };
 	srvDescriptorRange.BaseShaderRegister = 0;
-	srvDescriptorRange.NumDescriptors = mNumTextures;
+	srvDescriptorRange.NumDescriptors = NUM_TEXTURES;
 	srvDescriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	srvDescriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	srvDescriptorRange.RegisterSpace = 0;
@@ -244,18 +244,4 @@ void d3d_base::BuildPSO()
 
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(
 		&blendingPSO, IID_PPV_ARGS(mPSOs[2].GetAddressOf())));
-}
-
-void d3d_base::LoadTextures()
-{
-	DirectX::ResourceUploadBatch upload(md3dDevice.Get());
-
-	upload.Begin();
-
-	DirectX::CreateDDSTextureFromFile(md3dDevice.Get(), upload, L"Textures\\grass.dds", mTextures[0].GetAddressOf());
-	DirectX::CreateDDSTextureFromFile(md3dDevice.Get(), upload, L"Textures\\water1.dds", mTextures[1].GetAddressOf());
-
-	auto finish = upload.End(mCommandQueue.Get());
-
-	finish.wait();
 }

@@ -134,11 +134,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="d3dcbuffer.cpp" />
     <ClCompile Include="d3dinit.cpp" />
     <ClCompile Include="d3dpipeline.cpp" />
     <ClCompile Include="d3druntime.cpp" />
     <ClCompile Include="d3dUtil.cpp" />
+    <ClCompile Include="geometry_helper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MathHelper.cpp" />
     <ClCompile Include="RenderItem.cpp" />
@@ -148,6 +148,7 @@
   <ItemGroup>
     <ClInclude Include="d3dcamera.h" />
     <ClInclude Include="d3dinit.h" />
+    <ClInclude Include="d3dresource.h" />
     <ClInclude Include="d3dUtil.h" />
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="geometry.h" />

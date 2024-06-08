@@ -95,6 +95,13 @@ public:
 		}
 	}
 
+	D3D12_GPU_VIRTUAL_ADDRESS GetGPUHandle(int index)
+	{
+		D3D12_GPU_VIRTUAL_ADDRESS base = mUploadBuffer->GetGPUVirtualAddress();
+		base += mElementByteSize * index;
+		return base;
+	}
+
 private:
 	// Pointer to underlying GPU resource
 	// Is released automatically

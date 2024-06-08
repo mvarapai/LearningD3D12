@@ -45,7 +45,7 @@ void d3d_base::Initialize(HWND hWnd)
 	mTimer->Start();
 	// Enable the debug layer
 #if defined(DEBUG) || defined(_DEBUG)
-	{	
+	{
 		ThrowIfFailed(D3D12GetDebugInterface(
 			IID_PPV_ARGS(mDebugController.GetAddressOf())));
 		mDebugController->EnableDebugLayer();
@@ -72,7 +72,7 @@ void d3d_base::Initialize(HWND hWnd)
 
 	// Create descriptor heaps for RTV and DSV
 	CreateRTVAndDSVDescriptorHeaps();
-	
+
 	// Do the initial resize
 	// Back buffer array and DS buffers are reset and resized
 	OnResize();		// Executes command list
@@ -83,17 +83,46 @@ void d3d_base::Initialize(HWND hWnd)
 	// Reset the command list
 	ThrowIfFailed(mCommandList->Reset(mCommandAllocator.Get(), nullptr));
 
+	// LOAD RESOURCES
+	pStaticResources = std::make_unique<StaticResources>();
+	pStaticResources->LoadGeometry(md3dDevice.Get(), mCommandQueue.Get(),
+		mFence.Get(), mCurrentFence);
+	pStaticResources->LoadTextures(md3dDevice.Get(), mCommandQueue.Get());
+
+	// Set materials and transforms
+
+	MaterialConstants materials[NUM_MATERIALS];
+	materials[0].DiffuseAlbedo = DirectX::XMFLOAT4(0.0f, 0.6f, 0.0f, 1.0f);
+	materials[0].FresnelR0 = DirectX::XMFLOAT3(0.01f, 0.01f, 0.01f);
+	materials[0].Roughness = 1.0f;
+	materials[0].MatTransform = MathHelper::Identity4x4();
+
+	materials[1].DiffuseAlbedo = DirectX::XMFLOAT4(0.0f, 0.2f, 0.6f, 0.5f);
+	materials[1].FresnelR0 = DirectX::XMFLOAT3(0.1f, 0.1f, 0.1f);
+	materials[1].Roughness = 0.0f;
+	materials[1].MatTransform = MathHelper::Identity4x4();
+
+	ObjectConstants objects[NUM_OBJECTS];
+	
+	for (int i = 0; i < NUM_OBJECTS; i++)
+	{
+		objects[i].World = MathHelper::Identity4x4();
+	}
+
+	pDynamicResources = std::make_unique<DynamicResources>(md3dDevice.Get(), objects, materials);
+
+	mRenderItemsDefault.push_back(std::make_unique<RenderItem>(
+		pStaticResources->Geometries[0].Submeshes.at(0), 0, 0, pStaticResources->GetTextureSRV(0)));
+
+	mRenderItemsDefault.push_back(std::make_unique<RenderItem>(
+		pStaticResources->Geometries[0].Submeshes.at(1), 1, 1, pStaticResources->GetTextureSRV(1)));
+
 	// Create other objects
 
-	BuildFrameResources();
+	mCamera = std::make_unique<Camera>(XMVectorSet(5.0f, 2.0f, 5.0f, 1.0f), XM_PI * 7 / 4, -0.2f, mTimer.get());
 
-	LoadTextures();
-	CreateSRVHeap();
-	BuildSRVs();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
-	BuildMaterials();
-	BuildGeometry();
 	BuildPSO();
 
 	// Execute initialization commands
@@ -304,69 +333,6 @@ void d3d_base::CreateDepthStencilBufferAndView()
 		mCommandList.Get(),
 		D3D12_RESOURCE_STATE_COMMON,
 		D3D12_RESOURCE_STATE_DEPTH_WRITE);
-}
-
-// Create frame resouce objects
-void d3d_base::BuildFrameResources()
-{
-	for (int i = 0; i < gNumFrameResources; i++)
-	{
-		mFrameResources.push_back(
-			std::make_unique<FrameResource>(md3dDevice.Get(), 1, gNumObjects, gNumMaterials));
-	}
-	mCamera = std::make_unique<Camera>(XMVectorSet(5.0f, 2.0f, 5.0f, 1.0f), XM_PI * 7 / 4, -0.2f, mTimer.get());
-}
-
-void d3d_base::BuildMaterials()
-{
-	auto grass = std::make_unique<Material>();
-	grass->Name = "grass";
-	grass->CBIndex = 0;
-	grass->DiffuseAlbedo = XMFLOAT4(0.0f, 0.6f, 0.0f, 1.0f);
-	grass->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
-	grass->Roughness = 1.0f;
-	// This is not a good water material definition, but we do not have
-	// all the rendering tools we need (transparency, environment
-	// reflection), so we fake it for now.
-	auto water = std::make_unique<Material>();
-	water->Name = "water";
-	water->CBIndex = 1;
-	water->DiffuseAlbedo = XMFLOAT4(0.0f, 0.2f, 0.6f, 0.5f);
-	water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-	water->Roughness = 0.0f;
-	mMaterials["grass"] = std::move(grass);
-	mMaterials["water"] = std::move(water);
-}
-
-void d3d_base::BuildGeometry()
-{
-	// Initialize StaticGeometry
-	mMeshGeometry = std::make_unique<StaticGeometry<Vertex>>(md3dDevice.Get(), mCommandList.Get());
-
-	//std::unique_ptr<RenderItem> renderItem1 = std::make_unique<RenderItem>(
-	//	RenderItem::CreatePaintedCube(mMeshGeometry.get(), 0, mMaterials["grass"]->CBIndex));
-
-	//std::unique_ptr<RenderItem> renderItem2 = std::make_unique<RenderItem>(
-	//	RenderItem::CreateGrid(mMeshGeometry.get(), 1, mMaterials["grass"]->CBIndex, 10, 1.0f));
-
-	std::unique_ptr<RenderItem> terrain = std::make_unique<RenderItem>(
-		RenderItem::CreateTerrain(mMeshGeometry.get(), 0, mMaterials["grass"]->CBIndex, 100, 100, 100.0f, 100.0f));
-	terrain->mTextureIndex = 0;
-
-	std::unique_ptr<RenderItem> plane = std::make_unique<RenderItem>(
-		RenderItem::CreatePlane(mMeshGeometry.get(), 1, 1, 100, 100, 100.0f, 100.0f));
-
-	// Create GPU resources
-	mMeshGeometry->ConstructGeometry();
-
-	// Initialize render item arrays
-	mAllRenderItems.push_back(std::vector<std::unique_ptr<RenderItem>>());
-	mAllRenderItems.push_back(std::vector<std::unique_ptr<RenderItem>>());
-	mAllRenderItems.push_back(std::vector<std::unique_ptr<RenderItem>>());
-
-	mAllRenderItems[0].push_back(std::move(terrain));
-	mAllRenderItems[2].push_back(std::move(plane));
-
 }
 
 // Returns amount of quality levels available for 4X MSAA

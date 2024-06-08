@@ -66,3 +66,9 @@ struct MaterialConstants
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 };
 
+struct SubmeshGeometry
+{
+	UINT IndexCount = 0;            // How many indices to draw
+	UINT StartIndexLocation = 0;    // From which to start
+	INT BaseVertexLocation = 0;     // Padding of the indices
+};
