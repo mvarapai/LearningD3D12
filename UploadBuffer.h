@@ -19,6 +19,12 @@
 
 #include "d3dUtil.h"
 
+/**
+ * Class-wrapper for GPU upload buffer.
+ * 
+ * Usage:
+ *	Create through constructor
+ */
 template<typename T>
 class UploadBuffer
 {

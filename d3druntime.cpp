@@ -23,7 +23,7 @@ void d3d_base::DrawRenderItems()
 
 	mRenderItemsDefault.at(0)->Draw(mCommandList.Get(), pDynamicResources->pCurrentFrameResource);
 
-	mCommandList->SetPipelineState(mPSOs[2].Get());
+	mCommandList->SetPipelineState(mBlendPSO.Get());
 
 	mRenderItemsDefault.at(1)->Draw(mCommandList.Get(), pDynamicResources->pCurrentFrameResource);
 
@@ -38,7 +38,7 @@ void d3d_base::Draw()
 	ThrowIfFailed(currCmdAlloc->Reset());
 
 	// Use the default PSO
-	ThrowIfFailed(mCommandList->Reset(currCmdAlloc, mPSOs[0].Get()));
+	ThrowIfFailed(mCommandList->Reset(currCmdAlloc, mDefaultPSO.Get()));
 
 
 	// To know what to render
@@ -65,7 +65,7 @@ void d3d_base::Draw()
 	mCommandList->OMSetRenderTargets(1, &currBackBufferHandle,
 		true, &currDepthBufferHandle);
 
-	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
+	mCommandList->SetGraphicsRootSignature(mDefaultShader.mRootSignature.Get());
 	
 	// Set pass constants
 	mCommandList->SetGraphicsRootConstantBufferView(0, 

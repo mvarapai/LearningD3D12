@@ -108,7 +108,7 @@ void d3d_base::BuildRootSignature()
 	ThrowIfFailed(md3dDevice->CreateRootSignature(0,
 		serializedRootSig->GetBufferPointer(),
 		serializedRootSig->GetBufferSize(),
-		IID_PPV_ARGS(mRootSignature.GetAddressOf())));
+		IID_PPV_ARGS(mDefaultShader.mRootSignature.GetAddressOf())));
 }
 
 // Compile shaders and create input layout
@@ -122,12 +122,12 @@ void d3d_base::BuildShadersAndInputLayout()
 		NULL, NULL
 	};
 
-	mvsByteCode = CompileShader(L"Shaders\\main.hlsl",
+	mDefaultShader.mvsByteCode = CompileShader(L"Shaders\\main.hlsl",
 		defines, "VS", "vs_5_0");
-	mpsByteCode = CompileShader(L"Shaders\\main.hlsl",
+	mDefaultShader.mpsByteCode = CompileShader(L"Shaders\\main.hlsl",
 		defines, "PS", "ps_5_0");
 
-	mInputLayout =
+	mDefaultShader.mInputLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
 		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
@@ -192,18 +192,12 @@ void d3d_base::BuildPSO()
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = { };
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 
-	psoDesc.InputLayout = { mInputLayout.data(), (UINT)mInputLayout.size() };
-	psoDesc.pRootSignature = mRootSignature.Get();
-	psoDesc.VS =
-	{
-		reinterpret_cast<BYTE*>(mvsByteCode->GetBufferPointer()),
-		mvsByteCode->GetBufferSize()
-	};
-	psoDesc.PS =
-	{
-		reinterpret_cast<BYTE*>(mpsByteCode->GetBufferPointer()),
-		mpsByteCode->GetBufferSize()
-	};
+	// Set shaders
+	psoDesc.InputLayout = mDefaultShader.GetInputLayoutDesc();
+	psoDesc.pRootSignature = mDefaultShader.mRootSignature.Get();
+	psoDesc.VS = mDefaultShader.GetVertexShader();
+	psoDesc.PS = mDefaultShader.GetPixelShader();
+	
 	psoDesc.RasterizerState = rd;
 	psoDesc.BlendState = bd;
 	psoDesc.DepthStencilState = dsd;
@@ -216,14 +210,14 @@ void d3d_base::BuildPSO()
 	psoDesc.DSVFormat = mDepthStencilFormat;
 
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(
-		&psoDesc, IID_PPV_ARGS(mPSOs[0].GetAddressOf())));
+		&psoDesc, IID_PPV_ARGS(mDefaultPSO.GetAddressOf())));
 
 	// Create another PSO for line list drawing
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC linePSODesc = psoDesc;
 	linePSODesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
 
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(
-		&linePSODesc, IID_PPV_ARGS(mPSOs[1].GetAddressOf())));
+		&linePSODesc, IID_PPV_ARGS(mLinePSO.GetAddressOf())));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC blendingPSO = psoDesc;
 
@@ -243,5 +237,5 @@ void d3d_base::BuildPSO()
 	blendingPSO.BlendState.RenderTarget[0] = blendDesc;
 
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(
-		&blendingPSO, IID_PPV_ARGS(mPSOs[2].GetAddressOf())));
+		&blendingPSO, IID_PPV_ARGS(mBlendPSO.GetAddressOf())));
 }

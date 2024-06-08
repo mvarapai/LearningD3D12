@@ -87,15 +87,14 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mDepthStencilBuffer = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mSwapChainBuffer[swapChainBufferCount];
 
-	// Shader input signature
-	std::vector<D3D12_INPUT_ELEMENT_DESC>				mInputLayout;
-	Microsoft::WRL::ComPtr<ID3D12RootSignature>			mRootSignature = nullptr;
-	Microsoft::WRL::ComPtr<ID3DBlob>					mvsByteCode = nullptr;
-	Microsoft::WRL::ComPtr<ID3DBlob>					mpsByteCode = nullptr;
+	Shader												mDefaultShader;
 
 	// An array of pipeline states
 	static const int									gNumRenderModes = 3;
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mPSOs[gNumRenderModes];
+
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mDefaultPSO = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mLinePSO = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mBlendPSO = nullptr;
 
 	std::unique_ptr<Camera>								mCamera = nullptr;
 

@@ -102,7 +102,7 @@
       <Filter>Header Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="d3dresource.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
