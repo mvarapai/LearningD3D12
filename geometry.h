@@ -12,29 +12,6 @@
 #include "d3dUtil.h"
 #include "structures.h"
 
- /**
-  * Structure that defines material property.
-  * Can be changed during runtime and is a frame resource,
-  * therefore the number of 'dirty' frames is tracked.
-  */
-struct Material
-{
-    std::string Name = "null";
-
-    int CBIndex = -1;
-    int SRVHeapIndex = -1;
-
-    int NumFramesDirty = 3;
-
-    DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-    DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
-
-    // Roughness in normalized range
-    float Roughness = 0.25f;
-
-    DirectX::XMFLOAT4X4 MaterialTransform = MathHelper::Identity4x4();
-};
-
 // Class defining a mesh which could consist of multiple
 // submeshes that share the same vertex and index buffers.
 // Can specify user-defined vertex structure
@@ -173,8 +150,8 @@ public:
         return ibv;
     }
 private:
-    D3D12_GPU_VIRTUAL_ADDRESS VBBufferAddress;
-    D3D12_GPU_VIRTUAL_ADDRESS IBBufferAddress;
+    D3D12_GPU_VIRTUAL_ADDRESS VBBufferAddress = 0;
+    D3D12_GPU_VIRTUAL_ADDRESS IBBufferAddress = 0;
 
     // Free the memory when we have uploaded index and vertex buffers
     void DisposeUploaders()

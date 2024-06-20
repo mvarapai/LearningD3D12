@@ -111,10 +111,10 @@ void d3d_base::Initialize(HWND hWnd)
 
 	pDynamicResources = std::make_unique<DynamicResources>(md3dDevice.Get(), objects, materials);
 
-	mRenderItemsDefault.push_back(std::make_unique<RenderItem>(
+	mRenderItemsDefault.push_back(std::make_unique<DefaultDrawable>(
 		pStaticResources->Geometries[0].Submeshes.at(0), 0, 0, pStaticResources->GetTextureSRV(0)));
 
-	mRenderItemsDefault.push_back(std::make_unique<RenderItem>(
+	mRenderItemsDefault.push_back(std::make_unique<DefaultDrawable>(
 		pStaticResources->Geometries[0].Submeshes.at(1), 1, 1, pStaticResources->GetTextureSRV(1)));
 
 	// Create other objects

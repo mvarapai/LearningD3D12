@@ -99,8 +99,8 @@ private:
 	std::unique_ptr<Camera>								mCamera = nullptr;
 
 	// Sort RenderItems by the PSO used to render them
-	std::vector<std::unique_ptr<RenderItem>>			mRenderItemsDefault;
-	std::vector<std::unique_ptr<RenderItem>>			mRenderItemsWireframe;
+	std::vector<std::unique_ptr<DefaultDrawable>>			mRenderItemsDefault;
+	std::vector<std::unique_ptr<DefaultDrawable>>			mRenderItemsWireframe;
 
 	// Viewport and scissor rect properties
 	D3D12_VIEWPORT mViewport = { };
