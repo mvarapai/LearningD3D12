@@ -19,7 +19,7 @@
 #include "d3dUtil.h"
 #include "UploadBuffer.h"
 #include "FrameResource.h"
-#include "RenderItem.h"
+#include "drawable.h"
 #include "structures.h"
 #include "geometry.h"
 #include "d3dcamera.h" 

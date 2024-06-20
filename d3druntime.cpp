@@ -11,7 +11,7 @@
 #include "timer.h"
 #include "UploadBuffer.h"
 #include "d3dinit.h"
-#include "RenderItem.h"
+#include "drawable.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;

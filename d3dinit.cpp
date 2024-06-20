@@ -6,7 +6,7 @@
 #include "d3dinit.h"
 #include "d3dUtil.h"
 #include "UploadBuffer.h"
-#include "RenderItem.h"
+#include "drawable.h"
 
 #include <windowsx.h>
 #include <vector>

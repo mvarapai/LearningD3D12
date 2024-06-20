@@ -21,7 +21,21 @@
 
 #include "d3dresource.h"
 
-class RenderItem
+class IDrawable
+{
+protected:
+	D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	SubmeshGeometry Submesh;
+
+	IDrawable(D3D12_PRIMITIVE_TOPOLOGY topology, SubmeshGeometry submesh) : 
+		PrimitiveTopology(topology), Submesh(submesh) { }
+
+public:
+	virtual void Draw(ID3D12GraphicsCommandList* pCmdList,
+		FrameResource* pCurrentFrameResource) = 0;
+};
+
+class RenderItem : IDrawable
 {
 public:
 	RenderItem(const SubmeshGeometry& submesh,
@@ -29,18 +43,17 @@ public:
 		D3D12_GPU_DESCRIPTOR_HANDLE textureDescriptorHandle,
 		D3D12_PRIMITIVE_TOPOLOGY primitiveTypology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST) : 
 
-		mSubmesh(submesh), 
+		IDrawable(primitiveTypology, submesh),
 		ObjectCBIndex(objectCBIndex),
 		MaterialCBIndex(materialCBIndex),
-		TextureHandle(textureDescriptorHandle),
-		PrimitiveTopology(primitiveTypology)
+		TextureHandle(textureDescriptorHandle)
 	{	
 	}
 
 	RenderItem& operator=(RenderItem& rhs) = delete;
 
 	void Draw(ID3D12GraphicsCommandList* pCmdList,
-		FrameResource* pCurrentFrameResource)
+		FrameResource* pCurrentFrameResource) override
 	{
 		pCmdList->IASetPrimitiveTopology(PrimitiveTopology);
 
@@ -51,19 +64,12 @@ public:
 			pCurrentFrameResource->MaterialCB->GetGPUHandle(MaterialCBIndex));
 		pCmdList->SetGraphicsRootDescriptorTable(3, TextureHandle);
 
-		pCmdList->DrawIndexedInstanced(mSubmesh.IndexCount, 1,
-			mSubmesh.StartIndexLocation, mSubmesh.BaseVertexLocation, 0);
+		pCmdList->DrawIndexedInstanced(Submesh.IndexCount, 1,
+			Submesh.StartIndexLocation, Submesh.BaseVertexLocation, 0);
 	}
 private:
-	// Primitive topology
-	D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
 	UINT ObjectCBIndex = 0;
-
 	UINT MaterialCBIndex = 0;
-
 	D3D12_GPU_DESCRIPTOR_HANDLE TextureHandle;
-public:
-	SubmeshGeometry mSubmesh;
 };
 
