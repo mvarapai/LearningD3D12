@@ -23,6 +23,7 @@
 #include "structures.h"
 #include "geometry.h"
 #include "d3dcamera.h" 
+#include "d3dcomponent.h"
 
 #include "d3dresource.h"
 
@@ -36,7 +37,68 @@ class d3d_base
 
 public:
 	// Initialize the window and DirectX
-	void Initialize(HWND hWnd);
+	void Initialize(HWND hWnd)
+	{
+		mhWnd = hWnd;
+
+		mTimer = std::make_unique<Timer>();
+		mTimer->Reset();
+		mTimer->Start();
+
+
+#if defined(DEBUG) || defined(_DEBUG)
+		D3DHelper::EnableDebugInterface(mDebugController.GetAddressOf());
+#endif
+		D3DHelper::CreateDevice(mdxgiFactory.GetAddressOf(), md3dDevice.GetAddressOf());
+		D3DHelper::CreateFence(md3dDevice.Get(), mFence.GetAddressOf());
+		D3DHelper::CreateCommandObjects(md3dDevice.Get(),
+			mCommandList.GetAddressOf(),
+			mCommandAllocator.GetAddressOf(),
+			mCommandQueue.GetAddressOf());
+		D3DHelper::CreateSwapChain(mClientWidth, mClientHeight,
+			mBackBufferFormat, 2, mhWnd, true, mdxgiFactory.Get(),
+			mCommandQueue.Get(), mSwapChain.GetAddressOf());
+		D3DHelper::CreateRTVAndDSVDescriptorHeaps(2, md3dDevice.Get(),
+			mRtvHeap.GetAddressOf(), mDsvHeap.GetAddressOf());
+
+		// Query descriptor increment sizes
+		mRtvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(
+			D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(
+			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		mDsvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(
+			D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+
+
+
+		// Do the initial resize
+		// Back buffer array and DS buffers are reset and resized
+		OnResize();		// Executes command list
+
+		// Debug output
+		LogAdapters();
+
+		// Reset the command list
+		ThrowIfFailed(mCommandList->Reset(mCommandAllocator.Get(), nullptr));
+
+		LoadResources();
+
+		// Create other objects
+		mCamera = std::make_unique<Camera>(DirectX::XMVectorSet(5.0f, 2.0f, 5.0f, 1.0f), 
+			DirectX::XM_PI * 7 / 4, -0.2f, mTimer.get());
+
+		BuildRootSignature();
+		BuildShadersAndInputLayout();
+		BuildPSO();
+
+		// Execute initialization commands
+		ThrowIfFailed(mCommandList->Close());
+		ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
+		mCommandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+
+		// Wait till all commands are executed
+		FlushCommandQueue();
+	}
 
 	d3d_base() = default;
 private:
@@ -158,17 +220,10 @@ public:
 		WPARAM wParam, LPARAM lParam);			// called from WndProc of D3DWindow
 
 private:
-
-	void CreateSwapChain();						// Create IDXGISwapChain, along with two buffers
-	void CreateRTVAndDSVDescriptorHeaps();		// Create arrays of descriptors
-
+	void LoadResources();
 	void BuildRootSignature();					// Defines the shader input signature
 	void BuildShadersAndInputLayout();			// Compiles shaders and defines input layout
 	void BuildPSO();							// Configures rendering pipeline
-
-	// Used in OnResize():
-	void CreateRenderTargetView();				// Create descriptors for swap chain buffers
-	void CreateDepthStencilBufferAndView();		// Create depth/stencil buffer and descriptor
 
 	/**********************************************************
 	*				Getter functions
@@ -176,16 +231,26 @@ private:
 private:
 	
 	int GetMSAAQualityLevels();					// Get max quality levels for 4X MSAA
-	float AspectRatio();						// Get ratio of width to height
-	
-	// Get current descriptor handles
-	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
-	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
-
-	// Get current back buffer resource
-	ID3D12Resource* GetCurrentBackBuffer();
+	float AspectRatio()
+	{
+		return static_cast<float>(mClientWidth) / mClientHeight;
+	}
+	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE handle = mRtvHeap->GetCPUDescriptorHandleForHeapStart();
+		handle.ptr += (SIZE_T)mRtvDescriptorSize * mCurrBackBuffer;
+		return handle;
+	}
+	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const
+	{
+		return mDsvHeap->GetCPUDescriptorHandleForHeapStart();
+	}
+	ID3D12Resource* GetCurrentBackBuffer()
+	{
+		return mSwapChainBuffer[mCurrBackBuffer].Get();
+	}
 public:
-	bool IsPaused();							// Get paused state
+	bool IsPaused() { return mAppPaused; }
 
 	/**********************************************************
 	*					Runtime functions

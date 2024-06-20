@@ -186,6 +186,98 @@ void d3d_base::OnMouseMove(WPARAM btnState, int x, int y)
 	}
 }
 
+// Wait till GPU finishes with all commands
+void d3d_base::FlushCommandQueue()
+{
+	// Advance the fence value
+	mCurrentFence++;
+
+	// Set a new fence point
+	ThrowIfFailed(mCommandQueue->Signal(mFence.Get(), mCurrentFence));
+
+	if (mFence->GetCompletedValue() < mCurrentFence)
+	{
+		HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false,
+			EVENT_ALL_ACCESS);
+
+		// Fire event when GPU hits current fence
+		ThrowIfFailed(mFence->SetEventOnCompletion(mCurrentFence, eventHandle));
+
+		if (eventHandle == nullptr) return;
+
+		WaitForSingleObject(eventHandle, INFINITE);
+		CloseHandle(eventHandle);
+	}
+}
+
+// Called to change back and DS buffer sizes.
+// - Swap chain buffers are resized and new RTV is created.
+// - DS buffer is recreated with new dimensions along with DSV
+// - Command list is executed
+// - Viewport and scissor rects are reset
+// - Due to change of aspect ratio projection matrix is changed
+void d3d_base::OnResize()
+{
+	// Make sure all GPU commands are executed to avoid resource hazard
+	FlushCommandQueue();
+
+	// Reset the command list
+	ThrowIfFailed(mCommandList->Reset(mCommandAllocator.Get(),
+		nullptr));
+
+	// Release previous resources
+	for (int i = 0; i < swapChainBufferCount; i++)
+	{
+		mSwapChainBuffer[i].Reset();
+	}
+	mDepthStencilBuffer.Reset();
+
+	// Resize the swap chain
+
+	ThrowIfFailed(mSwapChain->ResizeBuffers(
+		swapChainBufferCount,
+		mClientWidth,
+		mClientHeight,
+		mBackBufferFormat,
+		DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
+
+	mCurrBackBuffer = 0;
+
+	D3DHelper::CreateRTVs(mRtvHeap.Get(), swapChainBufferCount,
+		mSwapChain.Get(), md3dDevice.Get(), mSwapChainBuffer);
+	D3DHelper::CreateDepthStencilBufferAndView(mClientWidth, mClientHeight,
+		mDepthStencilFormat, mDsvHeap.Get(), mCommandList.Get(),
+		md3dDevice.Get(), mDepthStencilBuffer.GetAddressOf());
+
+	// The only command is resource barrier
+	ThrowIfFailed(mCommandList->Close());
+	ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+
+	FlushCommandQueue();
+
+	// Set the viewport
+	mViewport = { };
+	mViewport.TopLeftX = 0.0f;
+	mViewport.TopLeftY = 0.0f;
+	mViewport.Width = static_cast<float>(mClientWidth);
+	mViewport.Height = static_cast<float>(mClientHeight);
+	mViewport.MinDepth = 0.0f;
+	mViewport.MaxDepth = 1.0f;
+
+	// Set the scissor rects
+	mScissorRect = { 0, 0, (long)mClientWidth,
+		(long)mClientHeight };
+
+	// Update/set projection matrix as it only depends on aspect ratio
+
+	XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi,
+		AspectRatio(), 1.0f, 1000.0f);
+	XMStoreFloat4x4(&mProj, P);
+}
+
+
+
 // Passed from default WndProc function
 LRESULT d3d_base::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
