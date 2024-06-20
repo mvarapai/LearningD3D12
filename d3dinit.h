@@ -77,15 +77,30 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		mCommandAllocator = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	mCommandList = nullptr;
 
+	// Back buffer and DS buffer formats
+	const DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	const DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+	// Viewport and scissor rect properties
+	D3D12_VIEWPORT mViewport = { };
+	D3D12_RECT mScissorRect = { };
+
 	// Arrays of descriptors
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		mRtvHeap = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		mDsvHeap = nullptr;
+
+	int	mCurrBackBuffer = 0;
+
+	UINT mRtvDescriptorSize = 0;
+	UINT mCbvSrvDescriptorSize = 0;
+	UINT mDsvDescriptorSize = 0;
 
 	// Instances of GPU resources
 	static const int									swapChainBufferCount = 2;
 	Microsoft::WRL::ComPtr<IDXGISwapChain>				mSwapChain = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mDepthStencilBuffer = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mSwapChainBuffer[swapChainBufferCount];
+
 
 	Shader												mDefaultShader;
 
@@ -102,13 +117,7 @@ private:
 	std::vector<std::unique_ptr<DefaultDrawable>>			mRenderItemsDefault;
 	std::vector<std::unique_ptr<DefaultDrawable>>			mRenderItemsWireframe;
 
-	// Viewport and scissor rect properties
-	D3D12_VIEWPORT mViewport = { };
-	D3D12_RECT mScissorRect = { };
 
-	// Back buffer and DS buffer formats
-	const DXGI_FORMAT mBackBufferFormat =				DXGI_FORMAT_R8G8B8A8_UNORM;
-	const DXGI_FORMAT mDepthStencilFormat =				DXGI_FORMAT_D24_UNORM_S8_UINT;
 
 	/******************************************************
 	 *					Variables
@@ -117,15 +126,9 @@ private:
 private:
 
 	UINT64 mCurrentFence = 0;
-	int	mCurrBackBuffer = 0;
 
 	// Current matrices
 	DirectX::XMFLOAT4X4 mProj = MathHelper::Identity4x4();
-
-	// Descriptor sizes
-	UINT mRtvDescriptorSize = 0;
-	UINT mCbvSrvDescriptorSize = 0;
-	UINT mDsvDescriptorSize = 0;
 
 private:
 	int msaaQualityLevels = 0;
@@ -156,9 +159,6 @@ public:
 
 private:
 
-	void CreateDevice();						// Create D3D12Device and factory
-	void CreateFenceAndQueryDescriptorSizes();	// Create ID3D12Fence and get descriptor sizes
-	void CreateCommandObjects();				// Create command queue, allocator, list
 	void CreateSwapChain();						// Create IDXGISwapChain, along with two buffers
 	void CreateRTVAndDSVDescriptorHeaps();		// Create arrays of descriptors
 

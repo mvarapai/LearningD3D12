@@ -8,6 +8,8 @@
 #include "UploadBuffer.h"
 #include "drawable.h"
 
+#include "d3dcomponent.h"
+
 #include <windowsx.h>
 #include <vector>
 #include <array>
@@ -43,35 +45,33 @@ void d3d_base::Initialize(HWND hWnd)
 	mTimer = std::make_unique<Timer>();
 	mTimer->Reset();
 	mTimer->Start();
-	// Enable the debug layer
+	
+
 #if defined(DEBUG) || defined(_DEBUG)
-	{
-		ThrowIfFailed(D3D12GetDebugInterface(
-			IID_PPV_ARGS(mDebugController.GetAddressOf())));
-		mDebugController->EnableDebugLayer();
-	}
+	D3DHelper::EnableDebugInterface(mDebugController.GetAddressOf());
 #endif
+	D3DHelper::CreateDevice(mdxgiFactory.GetAddressOf(), md3dDevice.GetAddressOf());
+	D3DHelper::CreateFence(md3dDevice.Get(), mFence.GetAddressOf());
+	D3DHelper::CreateCommandObjects(md3dDevice.Get(),
+		mCommandList.GetAddressOf(),
+		mCommandAllocator.GetAddressOf(),
+		mCommandQueue.GetAddressOf());
 
-	// Create device and DXGI factory
-	CreateDevice();
+	// Query descriptor increment sizes
+	mRtvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(
+		D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(
+		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	mDsvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(
+		D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
-	// Create fence
-	CreateFenceAndQueryDescriptorSizes();
 
-	// Get information about quality levels
+	D3DHelper::CreateSwapChain(mClientWidth, mClientHeight,
+		mBackBufferFormat, 2, mhWnd, true, mdxgiFactory.Get(),
+		mCommandQueue.Get(), mSwapChain.GetAddressOf());
 
-	msaaQualityLevels = GetMSAAQualityLevels();
-	std::wstring text = L"***Quality levels: " + std::to_wstring(msaaQualityLevels) + L"\n";
-	OutputDebugString(text.c_str());
-
-	// Create command queue, list, allocator
-	CreateCommandObjects();
-
-	// Create back buffer resources in the swap chain
-	CreateSwapChain();
-
-	// Create descriptor heaps for RTV and DSV
-	CreateRTVAndDSVDescriptorHeaps();
+	D3DHelper::CreateRTVAndDSVDescriptorHeaps(2, md3dDevice.Get(),
+		mRtvHeap.GetAddressOf(), mDsvHeap.GetAddressOf());
 
 	// Do the initial resize
 	// Back buffer array and DS buffers are reset and resized
@@ -134,207 +134,6 @@ void d3d_base::Initialize(HWND hWnd)
 	FlushCommandQueue();
 }
 
-// Create D3D device and DXGI factory
-void d3d_base::CreateDevice()
-{
-	// Create dxgi factory
-	ThrowIfFailed(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(
-		mdxgiFactory.GetAddressOf())));
-
-	// Try to create hardware device
-	HRESULT hardwareResult = D3D12CreateDevice(
-		nullptr,									// Default adapter
-		D3D_FEATURE_LEVEL_11_0,						// Min feature level
-		IID_PPV_ARGS(md3dDevice.GetAddressOf()));	// Pointer to device
-	
-	// Fallback to WARP device
-	if (FAILED(hardwareResult))
-	{
-		ComPtr<IDXGIAdapter> pWarpAdapter;
-		ThrowIfFailed(mdxgiFactory->EnumWarpAdapter
-		(IID_PPV_ARGS(pWarpAdapter.GetAddressOf())));
-
-		// Try again with WARP adapter
-		ThrowIfFailed(D3D12CreateDevice(pWarpAdapter.Get(),
-			D3D_FEATURE_LEVEL_11_0,
-			IID_PPV_ARGS(md3dDevice.GetAddressOf())));
-	}
-}
-
-// Creates fence and gets descriptor increment sizes
-void d3d_base::CreateFenceAndQueryDescriptorSizes()
-{
-	// Create Fence and set 0 as initial value
-	ThrowIfFailed(md3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-		IID_PPV_ARGS(mFence.GetAddressOf())));
-
-	// Query descriptor increment sizes
-	mRtvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	mDsvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-
-}
-
-// Create command queue, allocator, list
-void d3d_base::CreateCommandObjects()
-{
-	// Create command queue
-
-	D3D12_COMMAND_QUEUE_DESC queueDesc = { };
-	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-
-	ThrowIfFailed(md3dDevice->CreateCommandQueue(&queueDesc,
-		IID_PPV_ARGS(mCommandQueue.GetAddressOf())));
-
-	// Create command allocator
-
-	ThrowIfFailed(md3dDevice->CreateCommandAllocator(
-		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		IID_PPV_ARGS(mCommandAllocator.GetAddressOf())));
-
-	// Create command list for that allocator
-
-	ThrowIfFailed(md3dDevice->CreateCommandList(
-		0,
-		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		mCommandAllocator.Get(),
-		nullptr,
-		IID_PPV_ARGS(mCommandList.GetAddressOf())));
-
-	// Close the command list
-	mCommandList->Close();
-}
-
-// Create/recreate swap chain, potentially used to enable MSAA
-void d3d_base::CreateSwapChain()
-{
-	// Release previous swap chain we will be recreating
-	mSwapChain.Reset(); // Reset the pointer itself
-
-	DXGI_SWAP_CHAIN_DESC sd = { };
-	sd.BufferDesc.Width =	mClientWidth;
-	sd.BufferDesc.Height = mClientHeight;
-	sd.BufferDesc.RefreshRate.Numerator = 60;
-	sd.BufferDesc.RefreshRate.Denominator = 1;
-	sd.BufferDesc.Format = mBackBufferFormat;
-	sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-	sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-	sd.SampleDesc.Count = msaaEnabled ? 4 : 1;
-	sd.SampleDesc.Quality = msaaEnabled ? (msaaQualityLevels - 1) : 0;
-	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	sd.BufferCount = swapChainBufferCount;
-	sd.OutputWindow = mhWnd;
-	sd.Windowed = true;
-	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-
-	ThrowIfFailed(mdxgiFactory->CreateSwapChain(
-		mCommandQueue.Get(),
-		&sd,
-		mSwapChain.GetAddressOf()));
-}
-
-// Create descriptor heaps - RTV and DSV
-void d3d_base::CreateRTVAndDSVDescriptorHeaps()
-{
-	// Create render target view heap, containing two views
-	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = { };
-	rtvHeapDesc.NumDescriptors = swapChainBufferCount;
-	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	rtvHeapDesc.NodeMask = 0;
-
-	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(
-		&rtvHeapDesc, IID_PPV_ARGS(mRtvHeap.GetAddressOf())));
-
-	// Create depth/stencil view heap, containing one descriptor
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = { };
-	dsvHeapDesc.NumDescriptors = 1;
-	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	dsvHeapDesc.NodeMask = 0;
-
-	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(
-		&dsvHeapDesc, IID_PPV_ARGS(mDsvHeap.GetAddressOf())));
-}
-
-// Gets buffers from swap chain and creates views for them.
-// Stores swap chain buffers in the array field.
-void d3d_base::CreateRenderTargetView()
-{
-	// Get pointer to the start of RTV heap
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle =
-		mRtvHeap->GetCPUDescriptorHandleForHeapStart();
-
-	// Iterate through buffers
-	for (UINT i = 0; i < swapChainBufferCount; i++)
-	{
-		// Store the i'th swap chain buffer in the array
-		ThrowIfFailed(mSwapChain->GetBuffer(
-			i, IID_PPV_ARGS(mSwapChainBuffer[i].GetAddressOf())));
-
-		// Create a descriptor to the i'th buffer
-		md3dDevice->CreateRenderTargetView(
-			mSwapChainBuffer[i].Get(), nullptr, rtvHeapHandle);
-
-		// Offset the descriptor pointer to its size for the next entry
-		rtvHeapHandle.ptr += (SIZE_T)mRtvDescriptorSize;
-	}
-}
-
-// Create a DS resource, commit it to the GPU and create a descriptor
-void d3d_base::CreateDepthStencilBufferAndView()
-{
-	D3D12_RESOURCE_DESC depthStencilDesc = { };
-	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	depthStencilDesc.Alignment = 0;
-	depthStencilDesc.Width = mClientWidth;
-	depthStencilDesc.Height = mClientHeight;
-	depthStencilDesc.DepthOrArraySize = 1;
-	depthStencilDesc.MipLevels = 1;
-	depthStencilDesc.Format = mDepthStencilFormat;
-	depthStencilDesc.SampleDesc.Count = msaaEnabled ? 4 : 1;
-	depthStencilDesc.SampleDesc.Quality = 
-		msaaEnabled ? (msaaQualityLevels - 1) : 0;
-	depthStencilDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-	D3D12_CLEAR_VALUE optClear = { };
-	optClear.Format = mDepthStencilFormat;
-	optClear.DepthStencil.Depth = 1.0f;
-	optClear.DepthStencil.Stencil = 0;
-
-	const D3D12_HEAP_PROPERTIES hp = HeapProperties(D3D12_HEAP_TYPE_DEFAULT);
-
-	// Create resource and commit it to GPU
-
-	ThrowIfFailed(md3dDevice->CreateCommittedResource(
-		&hp,
-		D3D12_HEAP_FLAG_NONE,
-		&depthStencilDesc,
-		D3D12_RESOURCE_STATE_COMMON,
-		&optClear,
-		IID_PPV_ARGS(mDepthStencilBuffer.GetAddressOf())));
-
-	// Create a view and place it in descriptor heap
-
-	md3dDevice->CreateDepthStencilView(
-		mDepthStencilBuffer.Get(),
-		nullptr,
-		DepthStencilView());
-
-	// Transition the resource to write depth info
-
-	Transition(mDepthStencilBuffer.Get(),
-		mCommandList.Get(),
-		D3D12_RESOURCE_STATE_COMMON,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE);
-}
-
 // Returns amount of quality levels available for 4X MSAA
 int d3d_base::GetMSAAQualityLevels()
 {
@@ -368,9 +167,10 @@ ID3D12Resource* d3d_base::GetCurrentBackBuffer()
 D3D12_CPU_DESCRIPTOR_HANDLE d3d_base::CurrentBackBufferView() const
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = mRtvHeap->GetCPUDescriptorHandleForHeapStart();
-	handle.ptr += (SIZE_T) mRtvDescriptorSize * mCurrBackBuffer;
+	handle.ptr += (SIZE_T)mRtvDescriptorSize * mCurrBackBuffer;
 	return handle;
 }
+
 
 // Wait till GPU finishes with all commands
 void d3d_base::FlushCommandQueue()
@@ -429,8 +229,11 @@ void d3d_base::OnResize()
 
 	mCurrBackBuffer = 0;
 
-	CreateRenderTargetView();
-	CreateDepthStencilBufferAndView();
+	D3DHelper::CreateRTVs(mRtvHeap.Get(), swapChainBufferCount,
+		mSwapChain.Get(), md3dDevice.Get(), mSwapChainBuffer);
+	D3DHelper::CreateDepthStencilBufferAndView(mClientWidth, mClientHeight,
+		mDepthStencilFormat, mDsvHeap.Get(), mCommandList.Get(),
+		md3dDevice.Get(), mDepthStencilBuffer.GetAddressOf());
 
 	// The only command is resource barrier
 	ThrowIfFailed(mCommandList->Close());

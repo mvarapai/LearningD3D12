@@ -36,6 +36,14 @@ protected:
 		PrimitiveTopology(topology), Submesh(submesh) { }
 
 public:
+	
+	static void SetVBAndIB(ID3D12GraphicsCommandList* pCommandList,
+		const D3D12_VERTEX_BUFFER_VIEW &vbv,
+		const D3D12_INDEX_BUFFER_VIEW &ibv)
+	{
+		pCommandList->IASetVertexBuffers(0, 1, &vbv);
+		pCommandList->IASetIndexBuffer(&ibv);
+	}
 
 	/**
 	 * Call only after SetVBAndIB.
@@ -76,14 +84,6 @@ public:
 		MaterialCBIndex(materialCBIndex),
 		TextureHandle(textureDescriptorHandle)
 	{	
-	}
-
-	static void SetVBAndIB(ID3D12GraphicsCommandList* pCommandList, 
-		StaticResources* pStaticResources, 
-		UINT geometryIndex)
-	{
-		pCommandList->IASetVertexBuffers(0, 1, &pStaticResources->Geometries[geometryIndex].VertexBufferView);
-		pCommandList->IASetIndexBuffer(&pStaticResources->Geometries[geometryIndex].IndexBufferView);
 	}
 
 	DefaultDrawable& operator=(DefaultDrawable& rhs) = delete;

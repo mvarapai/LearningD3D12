@@ -134,6 +134,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="d3dcomponent.cpp" />
     <ClCompile Include="d3dinit.cpp" />
     <ClCompile Include="d3dpipeline.cpp" />
     <ClCompile Include="d3druntime.cpp" />
@@ -146,6 +147,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3dcamera.h" />
+    <ClInclude Include="d3dcomponent.h" />
     <ClInclude Include="d3dgui.h" />
     <ClInclude Include="d3dinit.h" />
     <ClInclude Include="d3dresource.h" />

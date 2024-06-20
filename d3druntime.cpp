@@ -18,7 +18,8 @@ using namespace DirectX::PackedVector;
 
 void d3d_base::DrawRenderItems()
 {
-	DefaultDrawable::SetVBAndIB(mCommandList.Get(), pStaticResources.get(), 0);
+	GEOMETRY_DESCRIPTOR& defaultGeometry = pStaticResources->Geometries[0];
+	DefaultDrawable::SetVBAndIB(mCommandList.Get(), defaultGeometry.VertexBufferView, defaultGeometry.IndexBufferView);
 
 	mRenderItemsDefault.at(0)->Draw(mCommandList.Get(), pDynamicResources->pCurrentFrameResource);
 
