@@ -45,7 +45,6 @@ public:
 		mTimer->Reset();
 		mTimer->Start();
 
-
 #if defined(DEBUG) || defined(_DEBUG)
 		D3DHelper::EnableDebugInterface(mDebugController.GetAddressOf());
 #endif
@@ -69,25 +68,14 @@ public:
 		mDsvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(
 			D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
-
-
-		// Do the initial resize
-		// Back buffer array and DS buffers are reset and resized
 		OnResize();		// Executes command list
-
-		// Debug output
 		LogAdapters();
-
-		// Reset the command list
 		ThrowIfFailed(mCommandList->Reset(mCommandAllocator.Get(), nullptr));
 
 		LoadResources();
-
-		// Create other objects
 		mCamera = std::make_unique<Camera>(DirectX::XMVectorSet(5.0f, 2.0f, 5.0f, 1.0f), 
 			DirectX::XM_PI * 7 / 4, -0.2f, mTimer.get());
-
-		BuildRootSignature();
+		D3DHelper::CreateDefaultRootSignature(md3dDevice.Get(), mDefaultShader.mRootSignature.GetAddressOf());
 		BuildShadersAndInputLayout();
 		BuildPSO();
 
@@ -221,7 +209,6 @@ public:
 
 private:
 	void LoadResources();
-	void BuildRootSignature();					// Defines the shader input signature
 	void BuildShadersAndInputLayout();			// Compiles shaders and defines input layout
 	void BuildPSO();							// Configures rendering pipeline
 

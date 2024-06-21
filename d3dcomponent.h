@@ -35,6 +35,10 @@ namespace D3DHelper
 		DXGI_FORMAT format, ID3D12DescriptorHeap* pDSVHeap,
 		ID3D12GraphicsCommandList* pCommandList,
 		ID3D12Device* pDevice, ID3D12Resource** ppDepthStencilBuffer);
+	void CreateDefaultRootSignature(ID3D12Device* pDevice, ID3D12RootSignature** ppRootSignature);
+	D3D12_RASTERIZER_DESC DefaultRasterizerDesc();
+	D3D12_BLEND_DESC DefaultBlendDescOff();
+	D3D12_DEPTH_STENCIL_DESC DefaultDepthStencilDesc();
 }
 
 class RenderTarget

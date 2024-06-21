@@ -96,4 +96,12 @@ struct Shader
 		return { reinterpret_cast<BYTE*>(mpsByteCode->GetBufferPointer()),
 			mpsByteCode->GetBufferSize() };
 	}
+
+	void Set(D3D12_GRAPHICS_PIPELINE_STATE_DESC& psoDesc)
+	{
+		psoDesc.InputLayout = GetInputLayoutDesc();
+		psoDesc.pRootSignature = mRootSignature.Get();
+		psoDesc.VS = GetVertexShader();
+		psoDesc.PS = GetPixelShader();
+	}
 };
