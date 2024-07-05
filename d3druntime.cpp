@@ -12,12 +12,21 @@
 #include "UploadBuffer.h"
 #include "d3dinit.h"
 #include "drawable.h"
+#include "d3dapp.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
-void d3d_base::DrawRenderItems()
+void D3DApplication::DrawRenderItems()
 {
+	mCommandList->SetGraphicsRootSignature(mDefaultShader.mRootSignature.Get());
+
+	// Set pass constants
+	mCommandList->SetGraphicsRootConstantBufferView(0,
+		pDynamicResources->pCurrentFrameResource->PassCB->Resource()->GetGPUVirtualAddress());
+
+	mCommandList->SetDescriptorHeaps(1, pStaticResources->mSRVHeap.GetAddressOf());
+
 	GEOMETRY_DESCRIPTOR& defaultGeometry = pStaticResources->Geometries[0];
 	DefaultDrawable::SetVBAndIB(mCommandList.Get(), defaultGeometry.VertexBufferView, defaultGeometry.IndexBufferView);
 
@@ -29,7 +38,7 @@ void d3d_base::DrawRenderItems()
 
 }
 
-void d3d_base::Draw()
+void D3DApplication::Draw()
 {
 	ID3D12CommandAllocator* currCmdAlloc =
 		pDynamicResources->pCurrentFrameResource->CommandListAllocator.Get();
@@ -65,14 +74,6 @@ void d3d_base::Draw()
 	mCommandList->OMSetRenderTargets(1, &currBackBufferHandle,
 		true, &currDepthBufferHandle);
 
-	mCommandList->SetGraphicsRootSignature(mDefaultShader.mRootSignature.Get());
-	
-	// Set pass constants
-	mCommandList->SetGraphicsRootConstantBufferView(0, 
-		pDynamicResources->pCurrentFrameResource->PassCB->Resource()->GetGPUVirtualAddress());
-
-	mCommandList->SetDescriptorHeaps(1, pStaticResources->mSRVHeap.GetAddressOf());
-
 	// Draw objects
 	DrawRenderItems();
 
@@ -98,7 +99,7 @@ void d3d_base::Draw()
 	mCommandQueue->Signal(mFence.Get(), mCurrentFence);
 }
 
-void d3d_base::UpdatePassCB()
+void D3DApplication::UpdatePassCB()
 {
 	PassConstants mPassCB;
 
@@ -155,7 +156,7 @@ void d3d_base::UpdatePassCB()
 	currPassCB->CopyData(0, mPassCB);
 }
 
-void d3d_base::Update()
+void D3DApplication::Update()
 {
 	pDynamicResources->NextFrameResource(mFence.Get());
 	pDynamicResources->UpdateConstantBuffers();
@@ -163,7 +164,7 @@ void d3d_base::Update()
 	UpdatePassCB();
 }
 
-void d3d_base::OnMouseDown(WPARAM btnState, int x, int y)
+void D3DApplication::OnMouseDown(WPARAM btnState, int x, int y)
 {
 	// Prepare to move
 	mCamera->mLastMousePos.x = x;
@@ -173,12 +174,12 @@ void d3d_base::OnMouseDown(WPARAM btnState, int x, int y)
 	SetCapture(mhWnd);
 }
 
-void d3d_base::OnMouseUp(WPARAM btnState, int x, int y)
+void D3DApplication::OnMouseUp(WPARAM btnState, int x, int y)
 {
 	ReleaseCapture();
 }
 
-void d3d_base::OnMouseMove(WPARAM btnState, int x, int y)
+void D3DApplication::OnMouseMove(WPARAM btnState, int x, int y)
 {
 	if ((btnState & MK_LBUTTON) != 0)
 	{

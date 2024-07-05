@@ -12,6 +12,7 @@
 #include "timer.h"
 #include "d3dinit.h"
 #include "d3dUtil.h"
+#include "d3dapp.h"
 
 // Entry point to the app
 int WINAPI WinMain(_In_ HINSTANCE hInstance,// Handle to app in Windows
@@ -22,11 +23,11 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance,// Handle to app in Windows
 	D3DWindow window = { hInstance };
 	window.Initialize();
 
-	d3d_base renderer;
-	renderer.Initialize(window.GetWindowHandle());
+	D3DApplication app;
+	app.Initialize(window.GetWindowHandle());
 
-	window.ShowD3DWindow(nCmdShow, &renderer);
-	renderer.Run();
+	window.ShowD3DWindow(nCmdShow, &app);
+	app.Run();
 	return 0;
 }
 

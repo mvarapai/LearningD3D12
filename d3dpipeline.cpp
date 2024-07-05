@@ -12,11 +12,12 @@
 
 #include "d3dinit.h"
 #include "d3dUtil.h"
+#include "d3dapp.h"
 
 using Microsoft::WRL::ComPtr;
 
 // Compile shaders and create input layout
-void d3d_base::BuildShadersAndInputLayout()
+void D3DApplication::BuildShadersAndInputLayout()
 {
 	HRESULT hr = S_OK;
 
@@ -42,7 +43,7 @@ void d3d_base::BuildShadersAndInputLayout()
 	};
 }
 
-void d3d_base::BuildPSO()
+void D3DApplication::BuildPSO()
 {
 	// Rasterizer desc
 

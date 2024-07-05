@@ -12,10 +12,20 @@
 
 class UIElement
 {
-
+public:
+	virtual void Draw() = 0;
 };
 
 class GUI
 {
+	std::vector<UIElement*> mElementArray;
 
+	// Draws UI objects in their order in array
+	void Draw()
+	{
+		for (UIElement* element : mElementArray)
+		{
+			element->Draw();
+		}
+	}
 };

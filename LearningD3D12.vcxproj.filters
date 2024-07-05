@@ -113,6 +113,9 @@
     <ClInclude Include="d3dcomponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="d3dapp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

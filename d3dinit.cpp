@@ -7,6 +7,7 @@
 #include "d3dUtil.h"
 #include "UploadBuffer.h"
 #include "drawable.h"
+#include "d3dapp.h"
 
 
 #include <windowsx.h>
@@ -37,7 +38,7 @@ int d3d_base::GetMSAAQualityLevels()
 	return msQualityLevels.NumQualityLevels;
 }
 
-void d3d_base::LoadResources()
+void D3DApplication::LoadResources()
 {
 	// LOAD RESOURCES
 	pStaticResources = std::make_unique<StaticResources>();

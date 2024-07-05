@@ -35,6 +35,9 @@ class d3d_base
 	 *					Initialization
 	 ******************************************************/
 
+private:
+	virtual void InitializeComponents() = 0;
+
 public:
 	// Initialize the window and DirectX
 	void Initialize(HWND hWnd)
@@ -72,12 +75,7 @@ public:
 		LogAdapters();
 		ThrowIfFailed(mCommandList->Reset(mCommandAllocator.Get(), nullptr));
 
-		LoadResources();
-		mCamera = std::make_unique<Camera>(DirectX::XMVectorSet(5.0f, 2.0f, 5.0f, 1.0f), 
-			DirectX::XM_PI * 7 / 4, -0.2f, mTimer.get());
-		D3DHelper::CreateDefaultRootSignature(md3dDevice.Get(), mDefaultShader.mRootSignature.GetAddressOf());
-		BuildShadersAndInputLayout();
-		BuildPSO();
+		InitializeComponents();
 
 		// Execute initialization commands
 		ThrowIfFailed(mCommandList->Close());
@@ -98,14 +96,11 @@ private:
 	d3d_base(d3d_base& rhs) = delete;
 	d3d_base& operator=(d3d_base& rhs) = delete;
 
-private:
+protected:
 
 	/******************************************************
 	 *					Class pointers
 	 ******************************************************/
-
-	std::unique_ptr<StaticResources>					pStaticResources = nullptr;
-	std::unique_ptr<DynamicResources>					pDynamicResources = nullptr;
 
 	HWND												mhWnd;
 
@@ -151,39 +146,22 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mDepthStencilBuffer = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mSwapChainBuffer[swapChainBufferCount];
 
-
-	Shader												mDefaultShader;
-
-	// An array of pipeline states
-	static const int									gNumRenderModes = 3;
-
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mDefaultPSO = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mLinePSO = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>			mBlendPSO = nullptr;
-
-	std::unique_ptr<Camera>								mCamera = nullptr;
-
-	// Sort RenderItems by the PSO used to render them
-	std::vector<std::unique_ptr<DefaultDrawable>>			mRenderItemsDefault;
-	std::vector<std::unique_ptr<DefaultDrawable>>			mRenderItemsWireframe;
-
+	// Current matrices
+	DirectX::XMFLOAT4X4 mProj = MathHelper::Identity4x4();
 
 
 	/******************************************************
 	 *					Variables
 	 ******************************************************/
 
-private:
+protected:
 
 	UINT64 mCurrentFence = 0;
 
-	// Current matrices
-	DirectX::XMFLOAT4X4 mProj = MathHelper::Identity4x4();
-
-private:
+protected:
 	int msaaQualityLevels = 0;
 	bool msaaEnabled = false;
-
+private:
 	// Window state members
 	std::wstring mMainWindowCaption = L"Learning DirectX12";
 
@@ -207,15 +185,11 @@ public:
 	LRESULT MsgProc(HWND hwnd, UINT msg,		// Function for message processing,
 		WPARAM wParam, LPARAM lParam);			// called from WndProc of D3DWindow
 
-private:
-	void LoadResources();
-	void BuildShadersAndInputLayout();			// Compiles shaders and defines input layout
-	void BuildPSO();							// Configures rendering pipeline
 
 	/**********************************************************
 	*				Getter functions
 	**********************************************************/
-private:
+protected:
 	
 	int GetMSAAQualityLevels();					// Get max quality levels for 4X MSAA
 	float AspectRatio()
@@ -243,23 +217,20 @@ public:
 	*					Runtime functions
 	**********************************************************/
 
+	virtual void Draw() = 0;								// Function to execute draw calls
+	virtual void Update() = 0;
 public:
 	int  Run();									// Main program cycle
 private:
-	void Draw();								// Function to execute draw calls
-	void DrawRenderItems();						// Draw every render item
-
-	void Update();								// Function for game logic
-	void UpdatePassCB();						// Update and store in CB pass constants
 
 	void FlushCommandQueue();					// Used to wait till GPU finishes execution
 	void OnResize();							// Called when user finishes resizing
 	void CalculateFrameStats();					// Update window title with FPS
 
 	// Mouse events
-	void OnMouseDown(WPARAM btnState, int x, int y);
-	void OnMouseUp(WPARAM btnState, int x, int y);
-	void OnMouseMove(WPARAM btnState, int x, int y);
+	virtual void OnMouseDown(WPARAM btnState, int x, int y) = 0;
+	virtual void OnMouseUp(WPARAM btnState, int x, int y) = 0;
+	virtual void OnMouseMove(WPARAM btnState, int x, int y) = 0;
 
 	/**********************************************************
 	*				Debug functions
