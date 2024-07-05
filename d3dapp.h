@@ -27,6 +27,8 @@ class D3DApplication : public D3DBase
 	std::vector<std::unique_ptr<DefaultDrawable>>			mRenderItemsDefault;
 	std::vector<std::unique_ptr<DefaultDrawable>>			mRenderItemsWireframe;
 
+	DirectX::XMFLOAT4X4 mProj = MathHelper::Identity4x4();
+
 private:
 	void D3DBase::InitializeComponents() override
 	{
@@ -52,6 +54,14 @@ private:
 
 	void Update() override;
 	void Draw() override;
+	void OnResize() override
+	{
+		D3DBase::OnResize();
+		// Update/set projection matrix as it only depends on aspect ratio
+		DirectX::XMMATRIX P = DirectX::XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi,
+			AspectRatio(), 1.0f, 1000.0f);
+		XMStoreFloat4x4(&mProj, P);
+	}
 
 	void OnMouseDown(WPARAM btnState, int x, int y) override;
 	void OnMouseUp(WPARAM btnState, int x, int y) override;

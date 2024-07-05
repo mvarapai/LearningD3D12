@@ -269,12 +269,6 @@ void D3DBase::OnResize()
 	// Set the scissor rects
 	mScissorRect = { 0, 0, (long)mClientWidth,
 		(long)mClientHeight };
-
-	// Update/set projection matrix as it only depends on aspect ratio
-
-	XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi,
-		AspectRatio(), 1.0f, 1000.0f);
-	XMStoreFloat4x4(&mProj, P);
 }
 
 

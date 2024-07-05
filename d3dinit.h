@@ -27,14 +27,12 @@
 
 #include "d3dresource.h"
 
-// Class that initializes and operates DirectX 12
+/**
+ * Class that initializes basic DirectX 12 interfaces and
+ * operates the window.
+ */
 class D3DBase
 {
-
-	/******************************************************
-	 *					Initialization
-	 ******************************************************/
-
 private:
 	virtual void InitializeComponents() = 0;
 
@@ -72,9 +70,13 @@ public:
 			D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
 		OnResize();		// Executes command list
-		LogAdapters();
+
+#if defined(DEBUG) || defined(_DEBUG)
+		LogAdapters();	// If in debug mode, log adapters
+#endif
 		ThrowIfFailed(mCommandList->Reset(mCommandAllocator.Get(), nullptr));
 
+		// Leave it to the rendering program to create any component objects
 		InitializeComponents();
 
 		// Execute initialization commands
@@ -88,67 +90,41 @@ public:
 
 	D3DBase() = default;
 private:
-
-	// Used to make this class one-instance, so
-	// that it cannot be accessed from outside
-
 	// Forbid copying
 	D3DBase(D3DBase& rhs) = delete;
 	D3DBase& operator=(D3DBase& rhs) = delete;
 
 protected:
-
-	/******************************************************
-	 *					Class pointers
-	 ******************************************************/
-
 	HWND												mhWnd;
-
-	// Timer instance
 	std::unique_ptr<Timer>								mTimer = nullptr;
-
-	// Debug interface
 	Microsoft::WRL::ComPtr<ID3D12Debug>					mDebugController = nullptr;
-
-	// Objects for creating other objects from D3D12 and DXGI
 	Microsoft::WRL::ComPtr<IDXGIFactory4>				mdxgiFactory = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Device>				md3dDevice = nullptr;
 
-	// Flush management
 	Microsoft::WRL::ComPtr<ID3D12Fence>					mFence = nullptr;
 
-	// Command objects
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue>			mCommandQueue = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator>		mCommandAllocator = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	mCommandList = nullptr;
 
-	// Back buffer and DS buffer formats
 	const DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	const DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	// Viewport and scissor rect properties
 	D3D12_VIEWPORT mViewport = { };
 	D3D12_RECT mScissorRect = { };
 
-	// Arrays of descriptors
+	int	mCurrBackBuffer = 0;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		mRtvHeap = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>		mDsvHeap = nullptr;
-
-	int	mCurrBackBuffer = 0;
 
 	UINT mRtvDescriptorSize = 0;
 	UINT mCbvSrvDescriptorSize = 0;
 	UINT mDsvDescriptorSize = 0;
 
-	// Instances of GPU resources
 	static const int									swapChainBufferCount = 2;
 	Microsoft::WRL::ComPtr<IDXGISwapChain>				mSwapChain = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mDepthStencilBuffer = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource>				mSwapChainBuffer[swapChainBufferCount];
-
-	// Current matrices
-	DirectX::XMFLOAT4X4 mProj = MathHelper::Identity4x4();
-
 
 	/******************************************************
 	 *					Variables
@@ -221,10 +197,10 @@ public:
 	virtual void Update() = 0;
 public:
 	int  Run();									// Main program cycle
-private:
+protected:
 
 	void FlushCommandQueue();					// Used to wait till GPU finishes execution
-	void OnResize();							// Called when user finishes resizing
+	virtual void OnResize();							// Called when user finishes resizing
 	void CalculateFrameStats();					// Update window title with FPS
 
 	// Mouse events
