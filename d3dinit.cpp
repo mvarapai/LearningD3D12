@@ -22,7 +22,7 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 // Returns amount of quality levels available for 4X MSAA
-int d3d_base::GetMSAAQualityLevels()
+int D3DBase::GetMSAAQualityLevels()
 {
 	D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels{};
 	msQualityLevels.Format = mBackBufferFormat;
@@ -77,7 +77,7 @@ void D3DApplication::LoadResources()
 }
 
 // Calculate FPS and update window text
-void d3d_base::CalculateFrameStats()
+void D3DBase::CalculateFrameStats()
 {
 	// Make static variables so that they don't change
 	// between function calls
@@ -107,7 +107,7 @@ void d3d_base::CalculateFrameStats()
 }
 
 // Print debug string containing the list of adapters
-void d3d_base::LogAdapters()
+void D3DBase::LogAdapters()
 {
 	UINT i = 0;
 	IDXGIAdapter* adapter = nullptr;
@@ -137,7 +137,7 @@ void d3d_base::LogAdapters()
 }
 
 // For every adapter log a string of available outputs
-void d3d_base::LogAdapterOutputs(IDXGIAdapter* adapter)
+void D3DBase::LogAdapterOutputs(IDXGIAdapter* adapter)
 {
 	UINT i = 0;
 	IDXGIOutput* output = nullptr;
@@ -160,7 +160,7 @@ void d3d_base::LogAdapterOutputs(IDXGIAdapter* adapter)
 }
 
 // For every output log a string of available display modes
-void d3d_base::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format)
+void D3DBase::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format)
 {
 	UINT count = 0;
 	UINT flags = 0;

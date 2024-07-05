@@ -32,7 +32,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance,// Handle to app in Windows
 }
 
 // Main program cycle
-int d3d_base::Run()
+int D3DBase::Run()
 {
 	// Process messages
 	MSG msg = { 0 };

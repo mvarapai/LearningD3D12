@@ -28,7 +28,7 @@
 #include "d3dresource.h"
 
 // Class that initializes and operates DirectX 12
-class d3d_base
+class D3DBase
 {
 
 	/******************************************************
@@ -86,15 +86,15 @@ public:
 		FlushCommandQueue();
 	}
 
-	d3d_base() = default;
+	D3DBase() = default;
 private:
 
 	// Used to make this class one-instance, so
 	// that it cannot be accessed from outside
 
 	// Forbid copying
-	d3d_base(d3d_base& rhs) = delete;
-	d3d_base& operator=(d3d_base& rhs) = delete;
+	D3DBase(D3DBase& rhs) = delete;
+	D3DBase& operator=(D3DBase& rhs) = delete;
 
 protected:
 

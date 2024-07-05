@@ -23,6 +23,6 @@ public:
 
 	// Create the window and show it
 	void Initialize();
-	void ShowD3DWindow(int show, d3d_base* pRenderer);
+	void ShowD3DWindow(int show, D3DBase* pRenderer);
 };
 

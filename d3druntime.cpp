@@ -188,7 +188,7 @@ void D3DApplication::OnMouseMove(WPARAM btnState, int x, int y)
 }
 
 // Wait till GPU finishes with all commands
-void d3d_base::FlushCommandQueue()
+void D3DBase::FlushCommandQueue()
 {
 	// Advance the fence value
 	mCurrentFence++;
@@ -217,7 +217,7 @@ void d3d_base::FlushCommandQueue()
 // - Command list is executed
 // - Viewport and scissor rects are reset
 // - Due to change of aspect ratio projection matrix is changed
-void d3d_base::OnResize()
+void D3DBase::OnResize()
 {
 	// Make sure all GPU commands are executed to avoid resource hazard
 	FlushCommandQueue();
@@ -280,7 +280,7 @@ void d3d_base::OnResize()
 
 
 // Passed from default WndProc function
-LRESULT d3d_base::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT D3DBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{

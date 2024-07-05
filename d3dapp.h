@@ -2,11 +2,15 @@
 
 #include "d3dinit.h"
 
-class D3DApplication : public d3d_base
+/**
+ * Class that defines runtime behavior of the program.
+ * 
+ * Inherits from D3DBase, creates and maintains all other objects.
+ */
+class D3DApplication : public D3DBase
 {
 	std::unique_ptr<StaticResources>					pStaticResources = nullptr;
 	std::unique_ptr<DynamicResources>					pDynamicResources = nullptr;
-
 
 	Shader												mDefaultShader;
 
@@ -24,13 +28,15 @@ class D3DApplication : public d3d_base
 	std::vector<std::unique_ptr<DefaultDrawable>>			mRenderItemsWireframe;
 
 private:
-	void d3d_base::InitializeComponents() override
+	void D3DBase::InitializeComponents() override
 	{
-
 		LoadResources();
 		mCamera = std::make_unique<Camera>(DirectX::XMVectorSet(5.0f, 2.0f, 5.0f, 1.0f),
 			DirectX::XM_PI * 7 / 4, -0.2f, mTimer.get());
+
+		// temp
 		D3DHelper::CreateDefaultRootSignature(md3dDevice.Get(), mDefaultShader.mRootSignature.GetAddressOf());
+
 		BuildShadersAndInputLayout();
 		BuildPSO();
 	}

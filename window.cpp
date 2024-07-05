@@ -1,7 +1,7 @@
 #include "window.h"
 #include "d3dinit.h"
 
-d3d_base* pD3D = nullptr;
+D3DBase* pD3D = nullptr;
 
 // Forward declaration to be used for creation
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -57,7 +57,7 @@ void D3DWindow::Initialize()
 // Returns HWND for an object
 HWND D3DWindow::GetWindowHandle() const { return mhWnd; }
 
-void D3DWindow::ShowD3DWindow(int show, d3d_base* pRenderer)
+void D3DWindow::ShowD3DWindow(int show, D3DBase* pRenderer)
 {
 	pD3D = pRenderer;
 	// Finally, when window is created show it
