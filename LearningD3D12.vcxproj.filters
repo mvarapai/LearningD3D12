@@ -67,7 +67,7 @@
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
     <ClCompile Include="d3dcomponent.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Utility</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -110,11 +110,11 @@
     <ClInclude Include="d3dgui.h">
       <Filter>Header Files\UI</Filter>
     </ClInclude>
-    <ClInclude Include="d3dcomponent.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="d3dapp.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dcomponent.h">
+      <Filter>Header Files\Utility</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
