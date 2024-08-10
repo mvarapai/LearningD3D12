@@ -162,13 +162,13 @@ private:
     }
 
     friend void CreateGrid(StaticGeometryUploader<Vertex>* meshGeometry, UINT numRows, float cellLength);
-    friend void CreateTerrain(StaticGeometryUploader<Vertex>* meshGeometry, UINT n, UINT m, float width, float depth);
+    friend void CreateTerrain(StaticGeometryUploader<Vertex>* meshGeometry, std::string filename);
     friend void CreatePlane(StaticGeometryUploader<Vertex>* meshGeometry, UINT n, UINT m, float width, float depth);
 
 };
 
 void CreateGrid(StaticGeometryUploader<Vertex>* meshGeometry, UINT numRows, float cellLength);
-void CreateTerrain(StaticGeometryUploader<Vertex>* meshGeometry, UINT n, UINT m, float width, float depth);
+void CreateTerrain(StaticGeometryUploader<Vertex>* meshGeometry, std::string filename);
 void CreatePlane(StaticGeometryUploader<Vertex>* meshGeometry, UINT n, UINT m, float width, float depth);
 
 

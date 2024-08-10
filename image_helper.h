@@ -27,7 +27,7 @@ struct Color3
  */
 class image_base
 {
-public:
+protected:
 	image_base();
 	~image_base();
 	image_base(image_base& other);
@@ -61,6 +61,30 @@ protected:
 	uint8_t const get_color8(int row, int col);
 	Color3 const get_color24(int row, int col);
 
-private:
+protected:
 	const char* at(int row, int col);
+};
+
+// 8-bit .bmp heightmap
+class HeightmapImage : public image_base
+{
+public:
+	HeightmapImage(std::string filename)
+	{
+		m_rawByteSize = 256 * 256;
+		read_bmp(filename.c_str());
+	}
+
+	uint8_t GetPixel(int row, int col)
+	{
+		return get_color8(row, col);
+	}
+
+	uint32_t GetWidth() const { return m_width; }
+	uint32_t GetHeight() const { return m_height; }
+
+	void write()
+	{
+		write_bmp("test.bmp");
+	}
 };

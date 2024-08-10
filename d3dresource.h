@@ -54,8 +54,8 @@ public:
 	{
 		StaticGeometryUploader<Vertex> uploader(pDevice);
 
-		CreateTerrain(&uploader, 100, 100, 100.0f, 100.0f);
-		CreatePlane(&uploader, 100, 100, 100.0f, 100.0f);
+		CreateTerrain(&uploader, "Textures//heightmap.bmp");
+		CreatePlane(&uploader, 100, 100, 128.0f, 128.0f);
 
 		uploader.ConstructGeometry(VertexBuffers[0], IndexBuffers[0], pQueue, pFence, currentValue);
 

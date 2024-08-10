@@ -37,6 +37,9 @@
     <Filter Include="Header Files\UI">
       <UniqueIdentifier>{b5575f21-2561-4c26-ba2c-756c893ca461}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Functionality">
+      <UniqueIdentifier>{ec6e68a0-8d48-461b-b03f-0fafd9ea18b2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="window.cpp">
@@ -67,6 +70,12 @@
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
     <ClCompile Include="d3dcomponent.cpp">
+      <Filter>Source Files\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="memory_util.cpp">
+      <Filter>Source Files\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="image_helper.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
   </ItemGroup>
@@ -115,6 +124,15 @@
     </ClInclude>
     <ClInclude Include="d3dcomponent.h">
       <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="image_helper.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="memory_util.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="game.h">
+      <Filter>Header Files\Functionality</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

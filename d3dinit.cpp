@@ -49,9 +49,10 @@ void D3DApplication::LoadResources()
 	// Set materials and transforms
 
 	MaterialConstants materials[NUM_MATERIALS];
+	// Grass
 	materials[0].DiffuseAlbedo = DirectX::XMFLOAT4(0.0f, 0.6f, 0.0f, 1.0f);
 	materials[0].FresnelR0 = DirectX::XMFLOAT3(0.01f, 0.01f, 0.01f);
-	materials[0].Roughness = 1.0f;
+	materials[0].Roughness = 0.8f;
 	materials[0].MatTransform = MathHelper::Identity4x4();
 
 	materials[1].DiffuseAlbedo = DirectX::XMFLOAT4(0.0f, 0.2f, 0.6f, 0.5f);
@@ -66,13 +67,17 @@ void D3DApplication::LoadResources()
 		objects[i].World = MathHelper::Identity4x4();
 	}
 
+	//XMMATRIX terrain = XMMatrixIdentity();
+	//terrain *= XMMatrixTranslation(0.0f, -4.0f, 0.0f);
+	//XMStoreFloat4x4(&objects[0].World, terrain);
+
 	pDynamicResources = std::make_unique<DynamicResources>(md3dDevice.Get(), objects, materials);
 
-	mRenderItemsDefault.push_back(std::make_unique<DefaultDrawable>(
-		pStaticResources->Geometries[0].Submeshes.at(0), 0, 0, pStaticResources->GetTextureSRV(0)));
+	mTerrain = std::make_unique<DefaultDrawable>(
+		pStaticResources->Geometries[0].Submeshes.at(0), 0, 0, pStaticResources->GetTextureSRV(0));
 
-	mRenderItemsDefault.push_back(std::make_unique<DefaultDrawable>(
-		pStaticResources->Geometries[0].Submeshes.at(1), 1, 1, pStaticResources->GetTextureSRV(1)));
+	mWater = std::make_unique<DefaultDrawable>(
+		pStaticResources->Geometries[0].Submeshes.at(1), 1, 1, pStaticResources->GetTextureSRV(1));
 
 }
 

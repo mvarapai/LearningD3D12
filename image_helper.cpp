@@ -146,9 +146,9 @@ int image_base::read_bmp(const char* src)
     uint32_t headerByteSize = *ptr;
 
     // Read m_rawByteSize
-    in.seekg(0x22);
+    /*in.seekg(0x22);
     in.read((char*)ptr, 4);
-    m_rawByteSize = *ptr;
+    m_rawByteSize = *ptr;*/
 
     // Read width and height
     in.seekg(0x12);

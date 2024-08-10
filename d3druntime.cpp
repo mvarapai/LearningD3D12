@@ -30,11 +30,11 @@ void D3DApplication::DrawRenderItems()
 	GEOMETRY_DESCRIPTOR& defaultGeometry = pStaticResources->Geometries[0];
 	DefaultDrawable::SetVBAndIB(mCommandList.Get(), defaultGeometry.VertexBufferView, defaultGeometry.IndexBufferView);
 
-	mRenderItemsDefault.at(0)->Draw(mCommandList.Get(), pDynamicResources->pCurrentFrameResource);
+	mTerrain->Draw(mCommandList.Get(), pDynamicResources->pCurrentFrameResource);
 
 	mCommandList->SetPipelineState(mBlendPSO.Get());
 
-	mRenderItemsDefault.at(1)->Draw(mCommandList.Get(), pDynamicResources->pCurrentFrameResource);
+	mWater->Draw(mCommandList.Get(), pDynamicResources->pCurrentFrameResource);
 
 }
 
@@ -135,11 +135,11 @@ void D3DApplication::UpdatePassCB()
 	mPassCB.AmbientLight = { 0.25f, 0.25f, 0.25f, 1.0f };
 
 	XMStoreFloat4(&mPassCB.FogColor, DirectX::Colors::Gray.v);
-	mPassCB.FogStart = 30.0f;
-	mPassCB.FogRange = 100.0f;
+	mPassCB.FogStart = 100.0f;
+	mPassCB.FogRange = 200.0f;
 
 	Light point = { };
-	point.FalloffEnd = 20.0f;
+	point.FalloffEnd = 100.0f;
 	point.FalloffStart = 0.1f;
 	point.Position = { 0.0f, 12.0f, 0.0f };
 	point.Strength = { 1.0f, 1.0f, 1.0f };

@@ -140,8 +140,10 @@
     <ClCompile Include="d3druntime.cpp" />
     <ClCompile Include="d3dUtil.cpp" />
     <ClCompile Include="geometry_helper.cpp" />
+    <ClCompile Include="image_helper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MathHelper.cpp" />
+    <ClCompile Include="memory_util.cpp" />
     <ClCompile Include="timer.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
@@ -154,9 +156,12 @@
     <ClInclude Include="d3dresource.h" />
     <ClInclude Include="d3dUtil.h" />
     <ClInclude Include="FrameResource.h" />
+    <ClInclude Include="game.h" />
     <ClInclude Include="geometry.h" />
+    <ClInclude Include="image_helper.h" />
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="drawable.h" />
+    <ClInclude Include="memory_util.h" />
     <ClInclude Include="structures.h" />
     <ClInclude Include="timer.h" />
     <ClInclude Include="UploadBuffer.h" />

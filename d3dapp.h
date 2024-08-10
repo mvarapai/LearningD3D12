@@ -23,9 +23,8 @@ class D3DApplication : public D3DBase
 
 	std::unique_ptr<Camera>								mCamera = nullptr;
 
-	// Sort RenderItems by the PSO used to render them
-	std::vector<std::unique_ptr<DefaultDrawable>>			mRenderItemsDefault;
-	std::vector<std::unique_ptr<DefaultDrawable>>			mRenderItemsWireframe;
+	std::unique_ptr<DefaultDrawable>					mTerrain = nullptr;
+	std::unique_ptr<DefaultDrawable>					mWater = nullptr;
 
 	DirectX::XMFLOAT4X4 mProj = MathHelper::Identity4x4();
 

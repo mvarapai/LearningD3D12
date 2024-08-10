@@ -2,6 +2,7 @@
 #include <DirectXMath.h>
 
 #include "geometry.h"
+#include "image_helper.h"
 
 using namespace DirectX;
 
@@ -48,30 +49,50 @@ void CreateGrid(StaticGeometryUploader<Vertex>* meshGeometry, UINT numRows, floa
 	meshGeometry->AddVertexData(vertices, indices);
 }
 
-void CreateTerrain(StaticGeometryUploader<Vertex>* meshGeometry, UINT n, UINT m, float width, float depth)
+void CreateTerrain(StaticGeometryUploader<Vertex>* meshGeometry, std::string filename)
 {
 	std::vector<Vertex> vertices;
 	std::vector<uint16_t> indices;
 
-	float dx = width / static_cast<float>(n - 1);
-	float dz = depth / static_cast<float>(m - 1);
+	// Initialize Heightmap
+	HeightmapImage heightmap(filename.c_str());
+	heightmap.write();
 
-	float zeroX = -width / 2;
-	float zeroZ = depth / 2;
+	UINT width = heightmap.GetWidth();
+	UINT depth = heightmap.GetHeight();
+
+	float dx = (float)width / static_cast<float>(width - 1);
+	float dz = (float)depth / static_cast<float>(depth - 1);
+
+	float zeroX = -(float)width / 2;
+	float zeroZ = (float)depth / 2;
 
 	// Generate vertices
-	for (UINT i = 0; i < m; i++)
+	for (UINT i = 1; i < width - 1; i++)
 	{
-		for (UINT j = 0; j < n; j++)
+		for (UINT j = 1; j < depth - 1; j++)
 		{
 			float x = zeroX + j * dx;
 			float z = zeroZ - i * dz;
-			float height = MathHelper::TerrainNoise(x, z);
+
+			float height = (float)heightmap.GetPixel(j, i) / 128.0f - 5.5f;
+
+			float dhj = ((float)heightmap.GetPixel(j + 1, i) - (float)heightmap.GetPixel(j - 1, i)) / 128.0f;
+			float dhi = ((float)heightmap.GetPixel(j, i + 1) - (float)heightmap.GetPixel(j, i - 1)) / 128.0f;
 
 			XMFLOAT3 n(
-				-0.03f * z * cosf(0.1f * x) - 0.3f * cosf(0.1f * z),
-				1.0f,
-				-0.3f * sinf(0.1f * x) + 0.03f * x * sinf(0.1f * z));
+				- 2 * dz * dhj,
+				4 * dx * dz,
+				- 2 * dx * dhi);
+
+			// Normalize
+			XMVECTOR v = XMLoadFloat3(&n);
+			v = XMVector3Normalize(v);
+			XMStoreFloat3(&n, v);
+
+			//XMFLOAT3 n(0.0f, 1.0f, 0.0f);
+
+			//XMVECTOR posJ = XMVectorSet((float)heightmap.GetPixel(j + 1, i) - (float)heightmap.GetPixel(j - 1, i))
 
 			XMFLOAT2 uv(0.05 * x, 0.05 * z);
 
@@ -81,11 +102,12 @@ void CreateTerrain(StaticGeometryUploader<Vertex>* meshGeometry, UINT n, UINT m,
 	}
 
 	// Generate indices
-	for (UINT i = 0; i < m - 1; i++)
+	for (UINT i = 0; i < width - 2; i++)
 	{
-		for (UINT j = 0; j < n - 1; j++)
+		for (UINT j = 0; j < depth - 2; j++)
 		{
 			// Generate indices for quad down and to the right
+			int n = width - 2;
 			indices.push_back(j + i * n);
 			indices.push_back((j + 1) + i * n);
 			indices.push_back(j + (i + 1) * n);
